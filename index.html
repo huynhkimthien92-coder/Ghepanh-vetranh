@@ -77,6 +77,12 @@ body.viewer-mode{overflow:hidden}
 body.viewer-mode .app{display:none}
 input[type=number]{font:inherit;font-size:16px;color:var(--ink);background:#272c2a;border:1px solid #3a413e;border-radius:8px;padding:0 10px;min-height:40px;width:100%}
 .dim{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:6px;align-items:center;margin-bottom:8px;font-size:13px;color:var(--mute)}
+h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
+.mh,.ph{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #111;pointer-events:auto;touch-action:none;cursor:grab}
+.mh{background:#ffd166}.ph{background:#ff8a3d;width:16px;height:16px;margin:-8px 0 0 -8px}
+#meshPath{fill:none;stroke:#ffd166;stroke-width:1;opacity:.85;pointer-events:none}
+#clipPoly{fill:rgba(255,138,61,.08);stroke:#ff8a3d;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+.stage.picking{cursor:crosshair}
 /* Điện thoại dọc: khung camera dính trên cùng, cài đặt cuộn bên dưới -> chỉnh tới đâu thấy tới đó */
 @media(max-width:900px) and (orientation:portrait){body{overflow:auto}.app{display:block;height:auto}
   .stage{position:sticky;top:0;z-index:5;height:46vh;height:46svh;box-shadow:0 6px 18px rgba(0,0,0,.45)}
@@ -91,7 +97,7 @@ input[type=number]{font:inherit;font-size:16px;color:var(--ink);background:#272c
   <section class="stage" id="stage">
     <canvas id="gl" width="2" height="2"></canvas>
     <div class="ov" id="ov">
-      <svg id="ovsvg"><polygon id="poly" points=""/></svg>
+      <svg id="ovsvg"><polygon id="poly" points=""/><path id="meshPath" d=""/><polygon id="clipPoly" points=""/></svg>
       <div class="h" data-i="0">1</div><div class="h" data-i="1">2</div><div class="h" data-i="2">3</div><div class="h" data-i="3">4</div>
     </div>
     <div class="empty" id="empty"><div><b>Chưa có nguồn hình</b>Bấm “Bật camera” hoặc “Mở video thử” ở bảng bên phải.</div></div>
@@ -103,6 +109,14 @@ input[type=number]{font:inherit;font-size:16px;color:var(--ink);background:#272c
     <h1>Ghép ảnh vào camera</h1>
     <p>Ảnh được dán lên một vùng cố định trong khung hình, người/vật đi ngang sẽ hiện đè lên ảnh thay vì làm ảnh trôi.</p>
 
+    <section class="g"><h2>Dự án</h2>
+      <div class="row"><select id="projSel" aria-label="Chọn dự án"></select></div>
+      <div class="row"><input type="text" id="projName" placeholder="Tên dự án" aria-label="Tên dự án" autocomplete="off"></div>
+      <div class="row"><button id="pjNew">Dự án mới</button><button id="pjDup">Nhân bản</button><button id="pjDel">Xoá</button></div>
+      <div class="row"><button id="pjExport">Xuất file</button><label class="btn">Nhập file<input type="file" id="pjImport" accept=".json,application/json"></label></div>
+      <div class="hint">Mỗi dự án lưu riêng ảnh, khung, lưới nắn, vùng khoanh và mọi cài đặt; tự lưu khi chỉnh. Đổi qua lại không mất gì. “Nhân bản” = giữ khung &amp; cài đặt để thử ảnh khác trên cùng bức tường. “Xuất file” để mang dự án sang máy khác.</div>
+    </section>
+
     <section class="g"><h2>1 · Nguồn hình</h2>
       <div class="row"><button class="pri" id="btnCam">Bật camera</button>
         <label class="btn">Mở video thử<input type="file" id="vidFile" accept="video/*"></label></div>
@@ -111,8 +125,8 @@ input[type=number]{font:inherit;font-size:16px;color:var(--ink);background:#272c
     </section>
 
     <section class="g"><h2>2 · Ảnh ghép</h2>
-      <div class="row"><label class="btn">Chọn ảnh…<input type="file" id="imgFile" accept="image/*"></label><img id="thumb" alt="Ảnh đã chọn"></div>
-      <div class="hint">PNG nền trong suốt được giữ nguyên độ trong. Có thể kéo-thả ảnh vào khung camera.</div>
+      <div class="row"><label class="btn">Chọn / đổi ảnh…<input type="file" id="imgFile" accept="image/*"></label><img id="thumb" alt="Ảnh đã chọn"></div>
+      <div class="hint">Đổi ảnh chỉ thay ảnh của dự án đang mở, giữ nguyên khung và cài đặt. Muốn giữ cả bản cũ: bấm “Nhân bản” ở mục Dự án trước rồi mới đổi. PNG nền trong suốt được giữ độ trong; có thể kéo-thả ảnh vào khung camera.</div>
     </section>
 
     <section class="g"><h2>3 · Vùng đặt ảnh</h2>
@@ -125,6 +139,15 @@ input[type=number]{font:inherit;font-size:16px;color:var(--ink);background:#272c
       <div class="dim" id="realRow"><input type="number" id="realW" min="1" step="any" placeholder="Rộng" aria-label="Chiều rộng thật"><span>×</span><input type="number" id="realH" min="1" step="any" placeholder="Cao" aria-label="Chiều cao thật"><span>cm</span></div>
       <div class="hint" id="aspInfo"></div>
       <label class="ck"><input type="checkbox" id="chkClip" checked>Cắt ảnh theo đúng khung vùng</label>
+      <h3 class="sub">Bề mặt không phẳng · hình dạng tự do</h3>
+      <label class="ck"><input type="checkbox" id="chkMesh">Lưới nắn cong (tượng, cột, tường cong, góc nhà…)</label>
+      <div class="row" id="meshRow"><select id="meshN" aria-label="Cỡ lưới"><option value="3">Lưới 3×3</option><option value="4">Lưới 4×4</option><option value="5">Lưới 5×5</option><option value="6">Lưới 6×6</option><option value="8">Lưới 8×8</option></select><button id="btnMeshReset">Làm phẳng lại</button></div>
+      <div class="hint" id="meshHint">Kéo các chấm vàng tới đúng điểm mốc trên bề mặt (đỉnh vai, khuỷu tay, mép cột…) để uốn ảnh ôm theo hình khối. Ảnh chỉ đúng khi nhìn từ vị trí camera, nên giữ camera cố định.</div>
+      <div class="row"><select id="clipMode" aria-label="Giới hạn mẫu"><option value="none">Mẫu hiện trong cả khung</option><option value="poly">Chỉ trong vùng khoanh tay</option><option value="obj">Chỉ trên vật chạm chọn</option></select></div>
+      <div class="row" id="polyRow"><button id="btnPolyEdit">Bắt đầu khoanh</button><button id="btnPolyUndo">Xoá điểm cuối</button><button id="btnPolyClear">Xoá hết</button></div>
+      <div id="objRow"><div class="row"><button id="btnObjPick">Chạm chọn vật</button><button id="btnObjAdd">Chạm thêm vùng</button><button id="btnObjClear">Xoá vùng chọn</button></div>
+        <div class="sl"><span>Độ rộng màu</span><input type="range" id="objTol" min="4" max="70" value="24"><output id="oObjTol">24</output></div></div>
+      <div class="hint" id="clipHint"></div>
       <label class="ck"><input type="checkbox" id="chkHandles" checked>Hiện khung &amp; tay cầm <kbd>H</kbd></label>
     </section>
 
@@ -230,6 +253,7 @@ const S = {
   bgReady:false, bgPending:false, mode:'fixed', locked:false,
   show:true, style:'img', line:'#ff2bd6', detail:40, thick:2, grid:false, gridN:10, blink:false,
   snap:true, aspMode:'auto', realW:0, realH:0,
+  meshOn:false, meshN:4, mesh:null, clipMode:'none', poly:[], objMask:null, objTol:24, polyEdit:false, pick:false,
   kbps:5, code:'', sig:'', turnUrl:'', turnUser:'', turnPass:''
 };
 const filt = Array.from({length:8},()=>new OneEuro());
@@ -245,14 +269,16 @@ float dif(vec3 a,vec3 b){float la=dot(a,vec3(.299,.587,.114)),lb=dot(b,vec3(.299
 bool inside(vec2 p){return p.x>=0.&&p.y>=0.&&p.x<=1.&&p.y<=1.;}`;
 const FS_DISP=COMMON+`
 uniform sampler2D uVid,uImg,uBg,uSeg,uEdge;uniform mat3 uHinv,uC2R;uniform vec2 uTx,uSize,uOff;uniform vec3 uLine;uniform float uStyle,uGrid;
-uniform float uA,uScale,uRot,uClip,uOpa,uSegOn,uDiffOn,uTh,uMask,uHas;
+uniform float uA,uScale,uRot,uClip,uOpa,uSegOn,uDiffOn,uTh,uMask,uHas,uMesh,uClipOn;uniform sampler2D uMeshTex,uClipTex;
 float bgd(vec2 p){vec3 h=uC2R*vec3(p,1.);if(h.z<=0.)return 0.;vec2 q=h.xy/h.z;if(!inside(q))return 0.;return dif(texture2D(uVid,p).rgb,texture2D(uBg,q).rgb);}
 void main(){vec2 p=vec2(vUV.x,1.-vUV.y);vec3 col=texture2D(uVid,p).rgb;
- if(uHas>.5){vec3 h=uHinv*vec3(p,1.);
-  if(h.z>0.){vec2 r=h.xy/h.z;vec2 q=vec2((r.x-.5-uOff.x)*uA,r.y-.5-uOff.y);
+ if(uHas>.5){vec3 h=uHinv*vec3(p,1.);bool okp=h.z>0.;vec2 r=h.xy/max(abs(h.z),1e-9);
+  if(uMesh>.5){vec4 t=floor(texture2D(uMeshTex,vUV)*255.+.5);float qu=t.r*256.+t.g,qv=t.b*256.+t.a;okp=qu>.5;r=(vec2(qu,qv)-1.)/65534.;}
+  if(okp){vec2 q=vec2((r.x-.5-uOff.x)*uA,r.y-.5-uOff.y);
    float c=cos(uRot),s=sin(uRot);q=vec2(c*q.x+s*q.y,-s*q.x+c*q.y)/uScale;vec2 iu=q/uSize+.5;
    float e=.002;float m=smoothstep(0.,e,min(min(iu.x,1.-iu.x),min(iu.y,1.-iu.y)));
    if(uClip>.5)m*=smoothstep(0.,e,min(min(r.x,1.-r.x),min(r.y,1.-r.y)));
+   if(uClipOn>.5){vec3 hc=uC2R*vec3(p,1.);vec2 qc=hc.xy/hc.z;m*=(hc.z>0.&&inside(qc))?smoothstep(.3,.7,texture2D(uClipTex,qc).r):0.;}
    float gr=0.;if(uGrid>.5){vec2 n=uSize/(max(uSize.x,uSize.y)/uGrid);vec2 g=abs(fract(iu*n+.5)-.5)/n*uSize;float w=.0035/uScale;
     gr=(1.-smoothstep(w*.5,w,min(g.x,g.y)))*step(0.,min(min(iu.x,1.-iu.x),min(iu.y,1.-iu.y))+w);}
    if(m>0.){vec4 ic=uStyle>.5?texture2D(uEdge,clamp(iu,0.,1.)):texture2D(uImg,clamp(iu,0.,1.));float occ=0.;
@@ -269,11 +295,44 @@ void main(){vec2 q=vUV;vec4 old=texture2D(uBg,q);vec3 h=uR2C*vec3(q,1.);
  vec3 cur=texture2D(uVid,c).rgb;if(uInit>.5){gl_FragColor=vec4(cur,1.);return;}
  float occ=smoothstep(uTh*.6,uTh*.6+.05,dif(cur,old.rgb));if(uSegOn>.5)occ=max(occ,smoothstep(.2,.4,texture2D(uSeg,c).r));
  gl_FragColor=vec4(mix(old.rgb,cur,uRate*(1.-occ)),1.);}`;
-function mkProg(fs){ const p=gl.createProgram(); for(const [t,src] of [[gl.VERTEX_SHADER,VS],[gl.FRAGMENT_SHADER,fs]]){ const s=gl.createShader(t); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); gl.attachShader(p,s);} gl.bindAttribLocation(p,0,'aPos'); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const cache={}; return {p,u:n=>cache[n]??=gl.getUniformLocation(p,n)}; }
+function mkProg(fs,vs=VS,attrs=['aPos']){ const p=gl.createProgram(); for(const [t,src] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){ const s=gl.createShader(t); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); gl.attachShader(p,s);} attrs.forEach((a,i)=>gl.bindAttribLocation(p,i,a)); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const cache={}; return {p,u:n=>cache[n]??=gl.getUniformLocation(p,n)}; }
 const PD=mkProg(FS_DISP), PB=mkProg(FS_BG);
+// Lưới nắn: vẽ lưới tam giác, mỗi điểm ảnh ghi toạ độ (u,v) của vùng dạng 16-bit vào FBO
+const PM=mkProg(`precision highp float;varying vec2 vT;vec2 enc(float x){float q=floor(clamp(x,0.,1.)*65534.+.5)+1.;float hi=floor(q/256.);return vec2(hi,q-hi*256.)/255.;}
+void main(){gl_FragColor=vec4(enc(vT.x),enc(vT.y));}`,`attribute vec2 aP;attribute vec2 aT;varying vec2 vT;void main(){vT=aT;gl_Position=vec4(aP,0.,1.);}`,['aP','aT']);
 const vb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,vb); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
 function mkTex(){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D,k,v); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,0])); return t; }
-const T={vid:mkTex(), img:mkTex(), edge:mkTex(), seg:mkTex(), bg:[mkTex(),mkTex()]};
+const T={vid:mkTex(), img:mkTex(), edge:mkTex(), seg:mkTex(), bg:[mkTex(),mkTex()], mesh:mkTex(), clip:mkTex()};
+gl.bindTexture(gl.TEXTURE_2D,T.mesh); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+const FBM=gl.createFramebuffer(); let meshW=0, meshH=0;
+function allocMesh(w,h){ meshW=w; meshH=h; gl.bindTexture(gl.TEXTURE_2D,T.mesh); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null); gl.bindFramebuffer(gl.FRAMEBUFFER,FBM); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,T.mesh,0); gl.bindFramebuffer(gl.FRAMEBUFFER,null); }
+const SUB=40, NV=(SUB+1)*(SUB+1), meshPos=new Float32Array(NV*2), mvb=gl.createBuffer(), mtb=gl.createBuffer(), mib=gl.createBuffer();
+{ const uv=new Float32Array(NV*2), id=new Uint16Array(SUB*SUB*6); let k=0; for(let j=0;j<=SUB;j++) for(let i=0;i<=SUB;i++){ uv[k++]=i/SUB; uv[k++]=j/SUB; }
+  k=0; for(let j=0;j<SUB;j++) for(let i=0;i<SUB;i++){ const a=j*(SUB+1)+i, b=a+1, c=a+SUB+1, d=c+1; id.set([a,b,c,b,d,c],k); k+=6; }
+  gl.bindBuffer(gl.ARRAY_BUFFER,mtb); gl.bufferData(gl.ARRAY_BUFFER,uv,gl.STATIC_DRAW); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,mib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,id,gl.STATIC_DRAW); }
+const meshGrid=N=>{ const m=[]; for(let j=0;j<N;j++) for(let i=0;i<N;i++) m.push([i/(N-1),j/(N-1)]); return m; };
+const crw=t=>{ const t2=t*t,t3=t2*t; return [(-t3+2*t2-t)/2,(3*t3-5*t2+2)/2,(-3*t3+4*t2+t)/2,(t3-t2)/2]; };
+function meshOff(u,v){ // nội suy Catmull-Rom độ lệch của các điểm điều khiển (đi qua đúng từng điểm)
+  const N=S.meshN, M=S.mesh, gx=u*(N-1), gy=v*(N-1), i0=Math.max(0,Math.min(N-2,Math.floor(gx))), j0=Math.max(0,Math.min(N-2,Math.floor(gy))), wx=crw(gx-i0), wy=crw(gy-j0); let ox=0,oy=0;
+  for(let b=0;b<4;b++){ const jj=Math.min(N-1,Math.max(0,j0-1+b)); for(let a=0;a<4;a++){ const ii=Math.min(N-1,Math.max(0,i0-1+a)), w=wx[a]*wy[b], q=M[jj*N+ii]; ox+=w*(q[0]-ii/(N-1)); oy+=w*(q[1]-jj/(N-1)); } }
+  return [ox,oy]; }
+function meshPass(){
+  const H=sq2q(S.ref); if(!H||!S.mesh) return; let k=0;
+  for(let j=0;j<=SUB;j++) for(let i=0;i<=SUB;i++){ const u=i/SUB, v=j/SUB, o=meshOff(u,v), r=ap(H,u+o[0],v+o[1]), c=ap(S.R2C,r[0],r[1]); meshPos[k++]=c[0]*2-1; meshPos[k++]=1-c[1]*2; }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,FBM); gl.viewport(0,0,meshW,meshH); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(PM.p);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mvb); gl.bufferData(gl.ARRAY_BUFFER,meshPos,gl.DYNAMIC_DRAW); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mtb); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,mib); gl.drawElements(gl.TRIANGLES,SUB*SUB*6,gl.UNSIGNED_SHORT,0);
+  gl.disableVertexAttribArray(1); gl.bindBuffer(gl.ARRAY_BUFFER,vb); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0); gl.bindFramebuffer(gl.FRAMEBUFFER,null); }
+// Mặt nạ giới hạn mẫu (vùng khoanh / vật chọn), lưu theo toạ độ tham chiếu
+const clipCv=document.createElement('canvas'); clipCv.width=2; clipCv.height=2;
+function clipActive(){ return (S.clipMode==='poly'&&S.poly.length>=3)||(S.clipMode==='obj'&&!!S.objImg); }
+function buildClip(){
+  if(!S.vw) return; const cw=Math.min(960,S.vw), ch=Math.round(cw*S.vh/S.vw); if(clipCv.width!==cw||clipCv.height!==ch){ clipCv.width=cw; clipCv.height=ch; }
+  const x=clipCv.getContext('2d'); x.filter='none'; x.fillStyle='#000'; x.fillRect(0,0,cw,ch); x.filter='blur(1.5px)'; x.fillStyle='#fff';
+  if(S.clipMode==='poly'&&S.poly.length>=3){ x.beginPath(); S.poly.forEach((q,i)=>i?x.lineTo(q[0]*cw,q[1]*ch):x.moveTo(q[0]*cw,q[1]*ch)); x.closePath(); x.fill(); }
+  else if(S.clipMode==='obj'&&S.objImg) x.drawImage(S.objImg,0,0,cw,ch);
+  x.filter='none'; gl.bindTexture(gl.TEXTURE_2D,T.clip); gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,gl.LUMINANCE,gl.UNSIGNED_BYTE,clipCv); }
 const FB=[gl.createFramebuffer(),gl.createFramebuffer()]; let bgIdx=0, bgW=2, bgH=2;
 function allocBg(w,h){ bgW=w; bgH=h; for(let i=0;i<2;i++){ gl.bindTexture(gl.TEXTURE_2D,T.bg[i]); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null); gl.bindFramebuffer(gl.FRAMEBUFFER,FB[i]); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,T.bg[i],0);} gl.bindFramebuffer(gl.FRAMEBUFFER,null); S.bgReady=false; }
 function bind(prog,name,unit,tex){ gl.activeTexture(gl.TEXTURE0+unit); gl.bindTexture(gl.TEXTURE_2D,tex); gl.uniform1i(prog.u(name),unit); }
@@ -300,6 +359,7 @@ function displayPass(){
     gl.uniform1f(PD.u('uClip'),S.clip?1:0); gl.uniform1f(PD.u('uOpa'),S.opa); gl.uniform1f(PD.u('uSegOn'),S.segOn&&seg.ready?1:0);
     bind(PD,'uEdge',4,T.edge); gl.uniform1f(PD.u('uStyle'),S.style==='edge'?1:0); gl.uniform1f(PD.u('uGrid'),S.grid?S.gridN:0);
     const lc=parseInt(S.line.slice(1),16); gl.uniform3f(PD.u('uLine'),(lc>>16&255)/255,(lc>>8&255)/255,(lc&255)/255);
+    gl.uniform1f(PD.u('uMesh'),S.meshOn&&S.mesh?1:0); bind(PD,'uMeshTex',5,T.mesh); gl.uniform1f(PD.u('uClipOn'),clipActive()?1:0); bind(PD,'uClipTex',6,T.clip);
     gl.uniform1f(PD.u('uDiffOn'),S.diffOn&&S.bgReady?1:0); gl.uniform1f(PD.u('uTh'),th()); gl.uniform1f(PD.u('uMask'),S.showMask?1:0); }
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
@@ -320,6 +380,7 @@ function regionAspect(){ const k=S.aspMode+S.realW+'x'+S.realH+S.vw+'x'+S.vh+S.r
   aspCache={k,v,info}; return v; }
 
 /* ================= Ảnh ghép ================= */
+function clearImage(){ S.img=false; S.imgCanvas=null; $('thumb').style.display='none'; $('thumb').removeAttribute('src'); }
 function setImage(bitmap){
   const w=bitmap.width, h=bitmap.height; S.imgA=w/h;
   const p2=n=>2**Math.round(Math.log2(n)); const tw=Math.min(2048,p2(w)), tH=Math.min(2048,p2(h));
@@ -329,7 +390,6 @@ function setImage(bitmap){
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
   S.img=true; const tb=$('thumb'); tb.src=c.toDataURL('image/png'); tb.style.display='block';
   const k0=Math.min(1,1024/Math.max(w,h)), ec=document.createElement('canvas'); ec.width=Math.max(1,Math.round(w*k0)); ec.height=Math.max(1,Math.round(h*k0)); ec.getContext('2d').drawImage(bitmap,0,0,ec.width,ec.height); S.imgCanvas=ec; makeEdges();
-  try{ const s=document.createElement('canvas'); const k=Math.min(1,1024/Math.max(w,h)); s.width=Math.round(w*k); s.height=Math.round(h*k); s.getContext('2d').drawImage(bitmap,0,0,s.width,s.height); localStorage.setItem('ghepanh.img',s.toDataURL('image/png')); }catch(e){}
 }
 /* Nét viền để tô theo: Sobel trên ảnh mẫu, giữ phần trăm cạnh mạnh nhất theo “Chi tiết nét” */
 function makeEdges(){
@@ -353,7 +413,8 @@ function makeEdges(){
   gl.bindTexture(gl.TEXTURE_2D,T.edge); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,pc); gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
 }
 let edgeT=0; const edgeSoon=()=>{ clearTimeout(edgeT); edgeT=setTimeout(makeEdges,120); };
-async function loadImageFile(f){ if(!f||!f.type.startsWith('image/')) return; try{ setImage(await createImageBitmap(f)); }catch(e){ const im=new Image(); im.onload=()=>setImage(im); im.src=URL.createObjectURL(f); } }
+async function bitmapOf(blob){ try{ return await createImageBitmap(blob); }catch(e){ return await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=URL.createObjectURL(blob); }); } }
+async function loadImageFile(f){ if(!f||!f.type.startsWith('image/')) return; try{ setImage(await bitmapOf(f)); if(PJ.cur){ PJ.cur.image=f; save(); } }catch(e){ toast('Không đọc được ảnh này.'); } }
 $('imgFile').onchange=e=>loadImageFile(e.target.files[0]);
 $('stage').addEventListener('dragover',e=>e.preventDefault());
 $('stage').addEventListener('drop',e=>{ e.preventDefault(); const f=[...e.dataTransfer.files].find(f=>f.type.startsWith('image/')); if(f) loadImageFile(f); });
@@ -380,7 +441,7 @@ $('btnExpo').onclick=async()=>{ const t=stream?.getVideoTracks()[0]; if(!t) retu
 if('requestVideoFrameCallback' in HTMLVideoElement.prototype){ const cb=()=>{ S.newFrame=true; vid.requestVideoFrameCallback(cb); }; vid.requestVideoFrameCallback(cb); S.rvfc=true; }
 
 function onSize(w,h){ S.vw=w; S.vh=h; cvs.width=w; cvs.height=h; const k=Math.min(1,PROC_W/w); proc.width=Math.round(w*k); proc.height=Math.round(h*k);
-  const bk=Math.min(1,960/w); allocBg(Math.round(w*bk),Math.round(h*bk)); seg.occ=null; if(trk){ trk.free(); S.locked=false; } layout(); updLock();
+  const bk=Math.min(1,960/w); allocBg(Math.round(w*bk),Math.round(h*bk)); allocMesh(w,h); buildClip(); seg.occ=null; if(trk){ trk.free(); S.locked=false; } layout(); updLock();
   if(S.diffOn) toast('Đã có hình. Khi vùng đặt ảnh trống, bấm “Chụp nền trống”.'); }
 
 /* ================= AI phân vùng người/vật (MediaPipe) ================= */
@@ -525,6 +586,7 @@ function frame(now){
   transforms(now);
   if(fresh){ if(S.bgPending){ bgPass(true); S.bgReady=true; S.bgPending=false; $('bgState').textContent='Đã có nền'; }
     else if(S.bgReady&&S.auto&&S.diffOn&&(!S.locked||trk?.state==='track')) bgPass(false); }
+  if(S.meshOn&&S.mesh&&S.img&&S.show) meshPass();
   displayPass(); overlay(); hud();
 }
 function transforms(now){
@@ -544,8 +606,21 @@ function layout(){ if(!S.vw) return;
   const r=stage.getBoundingClientRect(), k=Math.min(r.width/S.vw,r.height/S.vh), w=S.vw*k, h=S.vh*k;
   cvs.style.width=w+'px'; cvs.style.height=h+'px'; Object.assign(ov.style,{width:w+'px',height:h+'px',left:(r.width-w)/2+'px',top:(r.height-h)/2+'px'}); }
 new ResizeObserver(layout).observe(stage); document.addEventListener('fullscreenchange',layout); mqPortrait.addEventListener?.('change',layout); addEventListener('resize',layout);
+const mhs=[], phs=[], meshPathEl=$('meshPath'), clipPolyEl=$('clipPoly');
+function ensureH(arr,n,cls){ while(arr.length<n){ const el=document.createElement('div'); el.className=cls; el.dataset.i=arr.length; ov.appendChild(el); arr.push(el); } arr.forEach((el,i)=>{ el.hidden=i>=n; }); }
 function overlay(){ if(!S.disp||!S.handles) return; const w=ov.clientWidth, h=ov.clientHeight;
-  S.disp.forEach((p,i)=>{ hs[i].style.left=p[0]*w+'px'; hs[i].style.top=p[1]*h+'px'; }); poly.setAttribute('points',S.disp.map(p=>`${p[0]*w},${p[1]*h}`).join(' ')); }
+  S.disp.forEach((p,i)=>{ hs[i].style.left=p[0]*w+'px'; hs[i].style.top=p[1]*h+'px'; }); poly.setAttribute('points',S.disp.map(p=>`${p[0]*w},${p[1]*h}`).join(' '));
+  const Hr=sq2q(S.ref), N=S.meshN;
+  if(S.meshOn&&S.mesh&&Hr){ ensureH(mhs,N*N,'mh'); const P=(u,v)=>{ const r=ap(Hr,u,v), c=ap(S.R2C,r[0],r[1]); return [c[0]*w,c[1]*h]; };
+    for(let k=0;k<N*N;k++){ const i=k%N, j=(k/N)|0, el=mhs[k]; if((i===0||i===N-1)&&(j===0||j===N-1)){ el.hidden=true; continue; } const c=P(S.mesh[k][0],S.mesh[k][1]); el.style.left=c[0]+'px'; el.style.top=c[1]+'px'; }
+    const Q=(u,v)=>{ const o=meshOff(u,v), c=P(u+o[0],v+o[1]); return c[0].toFixed(1)+','+c[1].toFixed(1); }; let d=''; const SS=20;
+    for(let j=0;j<N;j++){ d+='M'; for(let t=0;t<=SS;t++) d+=(t?'L':'')+Q(t/SS,j/(N-1)); }
+    for(let i=0;i<N;i++){ d+='M'; for(let t=0;t<=SS;t++) d+=(t?'L':'')+Q(i/(N-1),t/SS); }
+    meshPathEl.setAttribute('d',d); }
+  else { ensureH(mhs,0,'mh'); meshPathEl.setAttribute('d',''); }
+  if(S.clipMode==='poly'){ ensureH(phs,S.poly.length,'ph'); const pts=S.poly.map(q=>{ const c=ap(S.R2C,q[0],q[1]); return [c[0]*w,c[1]*h]; });
+    pts.forEach((c,i)=>{ phs[i].style.left=c[0]+'px'; phs[i].style.top=c[1]+'px'; }); clipPolyEl.setAttribute('points',pts.map(c=>c.join(',')).join(' ')); }
+  else { ensureH(phs,0,'ph'); clipPolyEl.setAttribute('points',''); } }
 const norm = e => { const r=ov.getBoundingClientRect(); return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]; };
 const toRef = p => { const q=ap(S.C2R,p[0],p[1]); return [q[0],q[1]]; };
 const toRegion = p => { if(!S.Hinv) return null; const q=ap(S.Hinv,p[0],p[1]); return [q[0],q[1]]; };
@@ -553,14 +628,21 @@ let drag=null; const ptrs=new Map();
 hs.forEach(el=>el.addEventListener('pointerdown',e=>{ if(S.snap&&!cv) loadCV().catch(()=>{}); e.preventDefault(); e.stopPropagation(); el.setPointerCapture(e.pointerId); drag={type:'corner',i:+el.dataset.i}; }));
 hs.forEach(el=>el.addEventListener('pointermove',e=>{ if(drag?.type!=='corner') return; const p=norm(e).map(v=>Math.max(-.2,Math.min(1.2,v))); S.ref[drag.i]=toRef(p); filt.forEach(f=>f.reset()); }));
 hs.forEach(el=>el.addEventListener('pointerup',()=>{ const i=drag?.i; drag=null; if(i!==undefined) snapCorner(i); save(); }));
-stage.addEventListener('pointerdown',e=>{ if(!S.disp||e.target.classList.contains('h')||e.target.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); stage.setPointerCapture(e.pointerId);
+stage.addEventListener('pointerdown',e=>{ const t=e.target;
+  if(t.classList.contains('mh')||t.classList.contains('ph')){ e.preventDefault(); stage.setPointerCapture(e.pointerId); drag={type:t.classList.contains('mh')?'mesh':'polypt',i:+t.dataset.i,pid:e.pointerId}; return; }
+  if(S.disp&&S.polyEdit&&!t.classList.contains('h')){ S.poly.push(toRef(norm(e))); buildClip(); updClipUI(); save(); return; }
+  if(S.disp&&S.pick&&!t.classList.contains('h')){ const add=S.pick==='add'; S.pick=false; stage.classList.remove('picking'); pickObject(norm(e),add); return; }
+  if(!S.disp||t.classList.contains('h')||t.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); stage.setPointerCapture(e.pointerId);
   if(ptrs.size===1) drag={type:'pan',last:norm(e)}; else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; drag={type:'pinch',d:Math.hypot(a[0]-b[0],a[1]-b[1]),ang:Math.atan2(b[1]-a[1],b[0]-a[0]),s:S.scale,r:S.rot}; } });
+stage.addEventListener('pointermove',e=>{ if(!drag||(drag.type!=='mesh'&&drag.type!=='polypt')||e.pointerId!==drag.pid) return; const r=toRef(norm(e));
+  if(drag.type==='mesh'){ const Hi=inv(sq2q(S.ref)||I3); if(Hi){ const u=ap(Hi,r[0],r[1]); S.mesh[drag.i]=[Math.max(-.5,Math.min(1.5,u[0])),Math.max(-.5,Math.min(1.5,u[1]))]; } }
+  else { S.poly[drag.i]=r; buildClip(); } });
 stage.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)||!drag||drag.type==='corner') return; const p=norm(e); ptrs.set(e.pointerId,p);
   if(drag.type==='pan'&&ptrs.size===1){ if(S.drag==='quad'){ const a=toRef(drag.last), b=toRef(p); S.ref=S.ref.map(q=>[q[0]+b[0]-a[0],q[1]+b[1]-a[1]]); filt.forEach(f=>f.reset()); }
       else { const a=toRegion(drag.last), b=toRegion(p); if(a&&b){ S.off=[clampO(S.off[0]+b[0]-a[0]),clampO(S.off[1]+b[1]-a[1])]; syncUI(); } } drag.last=p; }
   else if(drag.type==='pinch'&&ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
       S.scale=Math.max(.1,Math.min(4,drag.s*d/drag.d)); S.rot=wrap(drag.r+(ang-drag.ang)*180/Math.PI); syncUI(); } });
-const endPtr=e=>{ ptrs.delete(e.pointerId); if(drag&&drag.type!=='corner'){ if(ptrs.size===1){ drag={type:'pan',last:[...ptrs.values()][0]}; } else if(!ptrs.size){ drag=null; save(); } } };
+const endPtr=e=>{ ptrs.delete(e.pointerId); if(drag&&(drag.type==='mesh'||drag.type==='polypt')){ if(e.pointerId===drag.pid){ drag=null; save(); } return; } if(drag&&drag.type!=='corner'){ if(ptrs.size===1){ drag={type:'pan',last:[...ptrs.values()][0]}; } else if(!ptrs.size){ drag=null; save(); } } };
 stage.addEventListener('pointerup',endPtr); stage.addEventListener('pointercancel',endPtr);
 stage.addEventListener('wheel',e=>{ if(!S.disp) return; e.preventDefault(); S.scale=Math.max(.1,Math.min(4,S.scale*Math.exp(-e.deltaY*.0015))); syncUI(); save(); },{passive:false});
 const clampO=v=>Math.max(-1,Math.min(1,v)), wrap=a=>((a+540)%360)-180;
@@ -572,6 +654,7 @@ function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textCont
   set('scale',Math.round(S.scale*100)); set('rot',Math.round(S.rot)); set('offX',Math.round(S.off[0]*100)); set('offY',Math.round(S.off[1]*100)); set('opa',Math.round(S.opa*100)); set('sens',S.sens); set('detail',S.detail); set('thick',S.thick); set('gridN',S.gridN); set('kbps',S.kbps);
   $('style').value=S.style; $('lineCol').value=S.line; $('chkGrid').checked=S.grid; $('chkBlink').checked=S.blink; $('btnShow').textContent=S.show?'Ẩn ảnh mẫu':'Hiện ảnh mẫu'; $('btnShow').classList.toggle('on',!S.show);
   for(const k of ['sig','turnUrl','turnUser','turnPass']) $(k).value=S[k]||'';
+  $('chkMesh').checked=S.meshOn; $('meshN').value=S.meshN; $('clipMode').value=S.clipMode; $('objTol').value=S.objTol; $('oObjTol').textContent=S.objTol; updClipUI();
   $('chkSnap').checked=S.snap; $('aspMode').value=S.aspMode; $('realRow').hidden=S.aspMode!=='real'; $('realW').value=S.realW||''; $('realH').value=S.realH||'';
   $('fit').value=S.fit; $('chkClip').checked=S.clip; $('chkHandles').checked=S.handles; $('chkSeg').checked=S.segOn; $('segModel').value=S.segModel; $('chkDiff').checked=S.diffOn; $('chkAuto').checked=S.auto; $('chkMask').checked=S.showMask;
   document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; document.querySelector(`input[name=drag][value=${S.drag}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); }
@@ -601,6 +684,43 @@ $('chkSnap').onchange=e=>{ S.snap=e.target.checked; if(S.snap) loadCV().catch(()
 $('aspMode').onchange=e=>{ S.aspMode=e.target.value; syncUI(); save(); };
 for(const k of ['realW','realH']) $(k).oninput=e=>{ S[k]=Math.max(0,+e.target.value||0); save(); };
 $('btnDetect').onclick=detectQuad;
+$('chkMesh').onchange=e=>{ S.meshOn=e.target.checked; if(!S.mesh||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN); syncUI(); save(); };
+$('meshN').onchange=e=>{ S.meshN=+e.target.value; S.mesh=meshGrid(S.meshN); save(); toast('Đã đổi cỡ lưới (lưới được làm phẳng lại).'); };
+$('btnMeshReset').onclick=()=>{ S.mesh=meshGrid(S.meshN); save(); };
+$('clipMode').onchange=e=>{ S.clipMode=e.target.value; S.polyEdit=false; S.pick=false; stage.classList.remove('picking'); buildClip(); syncUI(); save(); };
+$('btnPolyEdit').onclick=()=>{ S.polyEdit=!S.polyEdit; if(S.polyEdit) toast('Chạm lần lượt quanh viền vùng cần vẽ. Kéo chấm cam để sửa. Bấm “Xong” khi khoanh xong.'); updClipUI(); };
+$('btnPolyUndo').onclick=()=>{ S.poly.pop(); buildClip(); updClipUI(); save(); };
+$('btnPolyClear').onclick=()=>{ S.poly=[]; buildClip(); updClipUI(); save(); };
+const startPick=mode=>{ if(!S.vw) return toast('Chưa có nguồn hình.'); S.pick=mode; stage.classList.add('picking'); if(!cv) loadCV().catch(()=>{}); toast('Chạm vào vật trên khung camera.'); };
+$('btnObjPick').onclick=()=>startPick('new'); $('btnObjAdd').onclick=()=>startPick('add');
+$('btnObjClear').onclick=()=>{ S.objMask=null; S.objImg=null; buildClip(); updClipUI(); save(); };
+$('objTol').oninput=e=>{ S.objTol=+e.target.value; $('oObjTol').textContent=S.objTol; save(); };
+function updClipUI(){ $('polyRow').hidden=S.clipMode!=='poly'; $('objRow').hidden=S.clipMode!=='obj'; $('meshRow').hidden=!S.meshOn; $('meshHint').hidden=!S.meshOn;
+  $('btnPolyEdit').textContent=S.polyEdit?'Xong':'Bắt đầu khoanh'; $('btnPolyEdit').classList.toggle('pri',S.polyEdit);
+  $('clipHint').textContent = S.clipMode==='poly' ? (S.poly.length<3?`Đã có ${S.poly.length} điểm — cần ít nhất 3.`:`Vùng khoanh ${S.poly.length} điểm. Mẫu chỉ hiện bên trong.`)
+    : S.clipMode==='obj' ? (S.objImg?'Mẫu chỉ hiện trên vật đã chọn. Chọn hụt chỗ nào thì “Chạm thêm vùng”, lan quá thì giảm “Độ rộng màu”.':'Chạm vào vật (tượng, mảng tường…) để tự tách theo màu.') : ''; }
+
+/* ===== Chạm chọn vật: loang theo màu từ điểm chạm (OpenCV floodFill), lấp lỗ, cộng dồn được ===== */
+async function pickObject(pn,add){
+  try{ if(!cv){ toast('Đang tải bộ xử lý ảnh…'); await loadCV(); }
+    const pw=proc.width, ph=proc.height; pctx.drawImage(vid,0,0,pw,ph);
+    const src=cv.matFromImageData(pctx.getImageData(0,0,pw,ph)), rgb=new cv.Mat(); cv.cvtColor(src,rgb,cv.COLOR_RGBA2RGB); src.delete(); cv.medianBlur(rgb,rgb,5);
+    const mk=cv.Mat.zeros(ph+2,pw+2,cv.CV_8U), seed=new cv.Point(Math.round(pn[0]*(pw-1)),Math.round(pn[1]*(ph-1))), t=S.objTol, rect=new cv.Rect();
+    cv.floodFill(rgb,mk,seed,new cv.Scalar(255,255,255),rect,new cv.Scalar(t,t,t),new cv.Scalar(t,t,t),4|cv.FLOODFILL_MASK_ONLY|cv.FLOODFILL_FIXED_RANGE|(255<<8)); // so với màu điểm chạm -> không loang qua viền nhoè
+    const m=mk.roi(new cv.Rect(1,1,pw,ph)).clone(); mk.delete(); rgb.delete();
+    const k=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(7,7)); cv.morphologyEx(m,m,cv.MORPH_CLOSE,k); k.delete();
+    const cs=new cv.MatVector(), hi=new cv.Mat(); cv.findContours(m,cs,hi,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE); cv.drawContours(m,cs,-1,new cv.Scalar(255),-1); cs.delete(); hi.delete(); // lấp lỗ
+    const md=m.data; let cnt=0; for(let i=0;i<md.length;i++) if(md[i]) cnt++;
+    if(cnt<pw*ph*.002){ m.delete(); return toast('Vùng chọn quá nhỏ — tăng “Độ rộng màu” rồi chạm lại.'); }
+    // đổi sang toạ độ tham chiếu (khi đang bám camera di chuyển) + cộng với vùng cũ nếu “Chạm thêm”
+    const c=document.createElement('canvas'); c.width=pw; c.height=ph; const x=c.getContext('2d'), id=x.createImageData(pw,ph), od=id.data;
+    let prev=null; if(add&&S.objImg){ x.drawImage(S.objImg,0,0,pw,ph); prev=x.getImageData(0,0,pw,ph).data; }
+    const R2C=S.R2C, ident=R2C.every((v,i)=>Math.abs(v-I3[i])<1e-9);
+    for(let y=0;y<ph;y++) for(let xx=0;xx<pw;xx++){ let sx=xx, sy=y; if(!ident){ const q=ap(R2C,(xx+.5)/pw,(y+.5)/ph); sx=Math.floor(q[0]*pw); sy=Math.floor(q[1]*ph); }
+      let v=(sx>=0&&sy>=0&&sx<pw&&sy<ph&&md[sy*pw+sx])?255:0; const i=y*pw+xx; if(prev&&prev[4*i]>v) v=prev[4*i]; od[4*i]=od[4*i+1]=od[4*i+2]=v; od[4*i+3]=255; }
+    m.delete(); x.putImageData(id,0,0); S.objImg=c; S.objMask=c.toDataURL('image/png'); if(S.clipMode!=='obj'){ S.clipMode='obj'; syncUI(); }
+    buildClip(); updClipUI(); save(); toast(`Đã chọn vật (${Math.round(cnt/(pw*ph)*100)}% khung hình).`);
+  }catch(e){ console.error(e); toast('Không tách được vật: '+e.message); } }
 $('btnFitImg').onclick=fitQuadToImage;
 
 /* ===== Tự dò khung chữ nhật trong cảnh (OpenCV: Canny/ngưỡng thích nghi -> contour -> tứ giác lồi) ===== */
@@ -696,7 +816,60 @@ function hud(){ const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
   window.__dbg={relocs:trk?.relocs||0,fixes:trk?.fixes||0,state:trk?.state||'idle',pts:trk?trk.cur.length/2:0,ratio:trk?.ratio||0,disp:S.disp,ref:S.ref,bgReady:S.bgReady,fps}; }
 
 /* Lưu / khôi phục */
-let saveT=0; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem('ghepanh.s',JSON.stringify({ref:S.locked?S.disp:S.ref,fit:S.fit,scale:S.scale,rot:S.rot,off:S.off,opa:S.opa,clip:S.clip,handles:S.handles,drag:S.drag,segOn:S.segOn,segModel:S.segModel,diffOn:S.diffOn,sens:S.sens,auto:S.auto,mode:S.mode,show:S.show,style:S.style,line:S.line,detail:S.detail,thick:S.thick,grid:S.grid,gridN:S.gridN,blink:S.blink,kbps:S.kbps,snap:S.snap,aspMode:S.aspMode,realW:S.realW,realH:S.realH,code:S.code||'',sig:S.sig,turnUrl:S.turnUrl,turnUser:S.turnUser,turnPass:S.turnPass})); }catch(e){} broadcast(); },300); }
+/* ================= Dự án (IndexedDB): mỗi dự án = ảnh + khung + lưới + vùng khoanh + cài đặt ================= */
+const GK=['handles','drag','snap','kbps','code','sig','turnUrl','turnUser','turnPass'];   // cài đặt chung của máy
+const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol'];
+const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
+const pick=(o,ks)=>{ const r={}; for(const k of ks) r[k]=clone(o[k]); return r; };
+S.mesh=meshGrid(S.meshN); const DEF=pick(S,PK);
+const PJ={list:[],cur:null,mem:false};
+const DB={_db:null, open(){ return this._db||(this._db=new Promise((res,rej)=>{ if(!window.indexedDB) return rej(new Error('no idb')); const r=indexedDB.open('ghepanh',1); r.onupgradeneeded=()=>r.result.createObjectStore('projects',{keyPath:'id'}); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })); },
+  async run(mode,fn){ if(PJ.mem) return null; const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction('projects',mode), q=fn(t.objectStore('projects')); t.oncomplete=()=>res(q?q.result:null); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); }); },
+  all(){ return this.run('readonly',st=>st.getAll()); }, put(p){ return this.run('readwrite',st=>st.put(p)); }, del(id){ return this.run('readwrite',st=>st.delete(id)); } };
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function doSave(){ try{ localStorage.setItem('ghepanh.g',JSON.stringify(pick(S,GK))); }catch(e){}
+  if(PJ.cur){ const st=pick(S,PK); if(S.locked&&S.disp) st.ref=S.disp.map(p=>p.slice()); PJ.cur.settings=st; PJ.cur.updated=Date.now(); DB.put(PJ.cur).catch(e=>{ console.warn(e); if(!PJ.warned){ PJ.warned=true; toast('Không lưu được dự án (bộ nhớ trình duyệt đầy hoặc bị chặn).'); } }); }
+  broadcast(); }
+let saveT=0; function save(){ clearTimeout(saveT); saveT=setTimeout(doSave,300); }
+function saveNow(){ clearTimeout(saveT); doSave(); }
+function renderProj(){ const sel=$('projSel'); sel.innerHTML=PJ.list.slice().sort((a,b)=>b.updated-a.updated).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(''); if(PJ.cur){ sel.value=PJ.cur.id; $('projName').value=PJ.cur.name; } }
+async function openProject(rec){
+  if(S.locked) unlock(); PJ.cur=rec; const st=rec.settings||{}; for(const k of PK) S[k]=clone(st[k]??DEF[k]);
+  if(!Array.isArray(S.mesh)||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN);
+  try{ localStorage.setItem('ghepanh.cur',rec.id); }catch(e){}
+  S.polyEdit=false; S.pick=false; stage.classList.remove('picking'); filt.forEach(f=>f.reset()); det.list=[]; S.objImg=null; clearImage();
+  if(S.objMask){ const im=new Image(); im.onload=()=>{ if(PJ.cur===rec){ S.objImg=im; buildClip(); updClipUI(); } }; im.src=S.objMask; }
+  buildClip(); syncUI(); updLock(); renderProj();
+  if(rec.image){ try{ const bm=await bitmapOf(rec.image); if(PJ.cur===rec) setImage(bm); }catch(e){ toast('Không mở được ảnh của dự án.'); } }
+  if(S.segOn) loadSeg(); if(S.mode==='move') loadCV().catch(()=>{}); }
+async function newProject(settings,image,name){ const rec={id:uid(),name:name||`Dự án ${PJ.list.length+1}`,created:Date.now(),updated:Date.now(),settings,image:image||null};
+  PJ.list.push(rec); await DB.put(rec).catch(()=>{}); await openProject(rec); return rec; }
+$('projSel').onchange=e=>{ saveNow(); const r=PJ.list.find(p=>p.id===e.target.value); if(r) openProject(r); };
+$('projName').oninput=e=>{ if(!PJ.cur) return; PJ.cur.name=e.target.value.trim()||'Không tên'; const o=$('projSel').selectedOptions[0]; if(o) o.textContent=PJ.cur.name; save(); };
+$('pjNew').onclick=async()=>{ saveNow(); const st=clone(DEF); st.mode=S.mode; await newProject(st,null); toast('Đã tạo dự án mới. Chọn ảnh rồi đặt khung.'); };
+$('pjDup').onclick=async()=>{ saveNow(); if(!PJ.cur) return; await newProject(clone(PJ.cur.settings),PJ.cur.image,PJ.cur.name+' (bản sao)'); toast('Đã nhân bản. Giờ có thể đổi ảnh mà dự án cũ vẫn còn.'); };
+$('pjDel').onclick=async()=>{ if(!PJ.cur) return; if(!confirm(`Xoá dự án “${PJ.cur.name}”? Không khôi phục được.`)) return; clearTimeout(saveT);
+  const id=PJ.cur.id; PJ.list=PJ.list.filter(p=>p.id!==id); await DB.del(id).catch(()=>{}); PJ.cur=null;
+  if(!PJ.list.length) await newProject(clone(DEF),null,'Dự án 1'); else await openProject(PJ.list.sort((a,b)=>b.updated-a.updated)[0]); };
+const blobToDataURL=b=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); });
+$('pjExport').onclick=async()=>{ saveNow(); if(!PJ.cur) return; const out={app:'ghepanh',v:1,name:PJ.cur.name,settings:PJ.cur.settings,image:PJ.cur.image?await blobToDataURL(PJ.cur.image):null};
+  download(new Blob([JSON.stringify(out)],{type:'application/json'}),(PJ.cur.name.replace(/[\\/:*?"<>|]+/g,'_')||'du-an')+'.ghepanh.json'); };
+$('pjImport').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ const o=JSON.parse(await f.text()); if(o.app!=='ghepanh'||!o.settings) throw new Error('không phải file dự án'); saveNow();
+    const img=o.image?await (await fetch(o.image)).blob():null; await newProject(o.settings,img,o.name||'Dự án nhập'); toast('Đã nhập dự án “'+PJ.cur.name+'”.'); }
+  catch(err){ toast('Không nhập được: '+err.message); } };
+async function initProjects(){
+  try{ const g=JSON.parse(localStorage.getItem('ghepanh.g')||'null'); if(g) for(const k of GK) if(g[k]!==undefined&&g[k]!==null) S[k]=g[k]; }catch(e){}
+  let list=[]; try{ list=(await DB.all())||[]; }catch(e){ PJ.mem=true; toast('Trình duyệt chặn lưu trữ (chế độ ẩn danh?): dự án chỉ giữ đến khi đóng trang.'); }
+  if(!list.length){ // chuyển dữ liệu của bản cũ (chỉ 1 cấu hình) thành “Dự án 1”
+    const rec={id:uid(),name:'Dự án 1',created:Date.now(),updated:Date.now(),settings:clone(DEF),image:null}; let old=null;
+    try{ old=JSON.parse(localStorage.getItem('ghepanh.s')||'null'); }catch(e){}
+    if(old){ for(const k of PK) if(old[k]!==undefined) rec.settings[k]=old[k]; if(!localStorage.getItem('ghepanh.g')) for(const k of GK) if(old[k]!==undefined) S[k]=old[k]; }
+    const im=localStorage.getItem('ghepanh.img'); if(im){ try{ rec.image=await (await fetch(im)).blob(); }catch(e){} }
+    list=[rec]; await DB.put(rec).catch(()=>{}); try{ localStorage.removeItem('ghepanh.img'); localStorage.removeItem('ghepanh.s'); }catch(e){} }
+  PJ.list=list; const cid=localStorage.getItem('ghepanh.cur');
+  await openProject(list.find(p=>p.id===cid)||list.slice().sort((a,b)=>b.updated-a.updated)[0]); }
 /* ================= Phát trực tiếp sang máy khác (WebRTC qua PeerJS) ================= */
 const VIEW=(new URLSearchParams(location.search).get('xem')||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const PFX='ghepanh-', PEER_URL='https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js', QR_URL='https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.js';
@@ -799,12 +972,9 @@ function startViewer(code){
 
 if(VIEW){ startViewer(VIEW); }
 else {
-  try{ const o=JSON.parse(localStorage.getItem('ghepanh.s')||'null'); if(o) Object.assign(S,o); const im=localStorage.getItem('ghepanh.img'); if(im){ const i=new Image(); i.onload=()=>setImage(i); i.src=im; } }catch(e){}
-  syncUI(); updLock();
-  if(S.segOn) loadSeg();
-  if(S.mode==='move') loadCV().catch(()=>{});
+  syncUI(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
 }
-window.__app={S,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
+window.__app={S,PJ,DB,openProject,pickObject,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
 
 }
 </script>

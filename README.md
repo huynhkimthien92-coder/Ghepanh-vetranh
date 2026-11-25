@@ -24,6 +24,18 @@ Lần đầu app cần internet để tải thư viện (MediaPipe ~ vài MB, Op
 
 ## 2. Cách dùng
 
+### Dự án
+Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, vùng khoanh, vật đã chọn và toàn bộ cài đặt (thu phóng, nét viền, lưới ô, độ đậm…). Mọi chỉnh sửa **tự lưu** vào dự án đang mở, ngay trên trình duyệt của máy đó (IndexedDB).
+- **Chuyển sang hình khác, giữ hình cũ**: bấm **Dự án mới**. Dự án cũ còn nguyên, muốn quay lại thì chọn trong danh sách.
+- **Cùng bức tường, thử hình khác**: bấm **Nhân bản** (giữ nguyên khung và cài đặt) rồi **Chọn / đổi ảnh**.
+- **Đổi ảnh của dự án hiện tại**: bấm **Chọn / đổi ảnh** là ảnh được thay, còn khung, lưới, vùng khoanh và cài đặt giữ nguyên. Nếu tỉ lệ ảnh mới khác ảnh cũ, bấm **Khớp khung theo tỉ lệ ảnh**.
+- **Mang sang máy khác**: **Xuất file** tạo file `.ghepanh.json` (có cả ảnh). Ở máy kia bấm **Nhập file**.
+- Cài đặt chung của máy (mã xem, chất lượng phát, máy chủ kết nối, ẩn/hiện tay cầm) **không** nằm trong dự án.
+- Nền trống đã chụp chỉ dùng trong phiên đang mở, không lưu. Mở lại trang thì chụp lại.
+- Dữ liệu nằm trong trình duyệt: xoá dữ liệu duyệt web hoặc dùng tab ẩn danh sẽ mất. Dự án quan trọng nên **Xuất file** để dự phòng.
+
+### Các bước
+
 1. **Bật camera** (hoặc **Mở video thử** để test bằng một file video).
 2. **Chọn ảnh** (hoặc kéo thả ảnh vào khung). PNG nền trong suốt giữ nguyên độ trong.
 3. **Đặt khung vùng**, có 3 cách:
@@ -33,6 +45,10 @@ Lần đầu app cần internet để tải thư viện (MediaPipe ~ vài MB, Op
    - Ảnh được nắn phối cảnh theo đúng 4 góc đó.
    - **Tỉ lệ thật**: mặc định app **tự tính tỉ lệ thật** của vùng theo phối cảnh, nên khi camera nhìn xiên ảnh vẫn không bị méo. Muốn chính xác tuyệt đối thì chọn *Nhập kích thước vùng* và gõ rộng × cao (cm). Dòng chữ dưới ô chọn cho biết tỉ lệ đang dùng.
    - **Khớp khung theo tỉ lệ ảnh**: thu khung lại (vẫn giữ phối cảnh) để ảnh lấp đầy vừa khít, không thừa viền.
+   - **Bề mặt không phẳng (tượng, cột, tường cong, góc nhà)**: bật **Lưới nắn cong**, chọn cỡ lưới, rồi kéo các **chấm vàng** tới đúng điểm mốc trên bề mặt (đỉnh vai, khuỷu tay, mép cột…). Ảnh sẽ uốn mềm theo đúng các điểm đó, nội suy Catmull-Rom đi qua từng điểm. Ảnh khi đó được “chiếu” đúng theo **góc nhìn của camera**, nên phải giữ camera cố định.
+   - **Chỉ cho mẫu hiện trên vật / vùng tự do**:
+     - *Chỉ trong vùng khoanh tay*: bấm **Bắt đầu khoanh**, chạm lần lượt quanh viền (kéo chấm cam để sửa), xong bấm **Xong**.
+     - *Chỉ trên vật chạm chọn*: bấm **Chạm chọn vật** rồi chạm vào vật (ví dụ tượng chưa sơn). App tự tách vùng cùng màu với điểm chạm. Còn hụt chỗ nào thì **Chạm thêm vùng**; lan quá thì giảm **Độ rộng màu**.
 4. **Thu phóng cho vừa**: chọn *Vừa khung / Phủ kín / Kéo giãn*, rồi chỉnh *Thu phóng, Xoay, Lệch ngang/dọc, Độ đậm*. Cũng dùng được: lăn chuột hoặc chụm 2 ngón để phóng/xoay, kéo bên trong vùng để dời ảnh (chuyển sang “dời cả vùng” để dời luôn khung).
 5. **Chụp nền trống**: bấm khi vùng đặt ảnh **không có ai/vật gì đứng trước**.
 6. Chọn **kiểu camera**:
@@ -96,6 +112,9 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 | Máy quay tải lại trang | giữ nguyên mã, máy xem tự nối lại sau ~1,4 s |
 | Tự dò khung (tấm bảng 280×200 trên tường nhiều hoạ tiết) | tìm đúng, lệch 4 px; tỉ lệ đo 1,39 (thật 1,40) |
 | Hút góc khi thả lệch ~15 px | về đúng góc, còn lệch 1,5 px |
+| Dự án: tạo mới, quay lại, tải lại trang, xuất/nhập file | khung, ảnh, cài đặt khôi phục đúng 100% |
+| Lưới nắn: bật lưới phẳng / kéo điểm giữa | phẳng thì giống hệt khi tắt; kéo điểm thì ảnh uốn theo đúng điểm |
+| Khoanh vùng / chạm chọn tấm bảng | ngoài vùng hiện hình camera; chọn vật đúng tấm bảng (25% khung), chừa phần người đứng chắn |
 | Tỉ lệ thật khi nhìn xiên (mô phỏng camera pinhole) | đúng 1,500 / 0,625 / 4,000, trong khi đo theo hình trên màn sai tới 35% |
 
 ## 6. Mẹo & giới hạn
@@ -104,5 +123,7 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 - Chế độ cầm tay cần vùng hoặc xung quanh vùng có **hoạ tiết/cạnh**. Tường trơn tuyệt đối thì không có gì để bám, hãy dùng chân máy hoặc kéo vùng rộng ra.
 - Vật được đặt **cố định lâu** trước vùng sẽ tiếp tục được coi là vật che, bấm “Chụp nền trống” lại nếu muốn ảnh phủ lên nó.
 - Máy yếu: app tự giãn nhịp chạy AI (HUD góc trái hiện thời gian xử lý).
+- Lưới nắn cong là để uốn ảnh theo bề mặt **nhìn từ camera**: hình vẽ ra sẽ đúng khi đứng ở vị trí camera nhìn vào, giống máy chiếu. Với tượng 3D, mặt nào camera không thấy thì cần đặt camera ở góc khác và làm thêm một dự án riêng cho góc đó (dùng **Nhân bản**).
+- Chạm chọn vật tách theo màu nên hợp nhất với vật **một màu** (tượng thạch cao, mảng tường trơn). Vật nhiều hoa văn thì dùng khoanh tay.
 - Tự dò khung / hút góc cần tải OpenCV (~10 MB) ở lần dùng đầu. Tường trơn không có mốc thì không có gì để dò: dán 4 dấu băng keo ở 4 góc vùng cần vẽ là dò và hút góc rất chuẩn.
 - Tỉ lệ thật tự tính chính xác nhất khi vùng là hình chữ nhật thật (đánh dấu bằng băng keo vuông góc) và camera nhìn xiên theo cả 2 chiều. Nếu camera chỉ nghiêng 1 chiều, app dùng tiêu cự mặc định nên sai lệch khoảng vài %. Cần chuẩn tuyệt đối thì nhập kích thước.
