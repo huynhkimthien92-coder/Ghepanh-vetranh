@@ -26,7 +26,13 @@ Lần đầu app cần internet để tải thư viện (MediaPipe ~ vài MB, Op
 
 1. **Bật camera** (hoặc **Mở video thử** để test bằng một file video).
 2. **Chọn ảnh** (hoặc kéo thả ảnh vào khung). PNG nền trong suốt giữ nguyên độ trong.
-3. **Kéo 4 chấm tròn** cho khớp 4 góc vùng thật (tường, bảng, sàn…). Ảnh được nắn phối cảnh theo đúng 4 góc đó.
+3. **Đặt khung vùng**, có 3 cách:
+   - **Tự dò khung**: app tìm hình chữ nhật có thật trong ảnh camera (bảng, khung tranh, cửa, hoặc viền băng keo bạn dán quanh vùng cần vẽ). Có nhiều khung thì bấm lại để chuyển sang khung khác.
+   - **Kéo 4 chấm tròn** bằng tay. Khi thả, góc tự **hút vào góc thật gần nhất** (dấu băng keo, góc bảng), tắt được bằng ô “Hút góc…”.
+   - **Đặt lại vùng** để về khung mặc định.
+   - Ảnh được nắn phối cảnh theo đúng 4 góc đó.
+   - **Tỉ lệ thật**: mặc định app **tự tính tỉ lệ thật** của vùng theo phối cảnh, nên khi camera nhìn xiên ảnh vẫn không bị méo. Muốn chính xác tuyệt đối thì chọn *Nhập kích thước vùng* và gõ rộng × cao (cm). Dòng chữ dưới ô chọn cho biết tỉ lệ đang dùng.
+   - **Khớp khung theo tỉ lệ ảnh**: thu khung lại (vẫn giữ phối cảnh) để ảnh lấp đầy vừa khít, không thừa viền.
 4. **Thu phóng cho vừa**: chọn *Vừa khung / Phủ kín / Kéo giãn*, rồi chỉnh *Thu phóng, Xoay, Lệch ngang/dọc, Độ đậm*. Cũng dùng được: lăn chuột hoặc chụm 2 ngón để phóng/xoay, kéo bên trong vùng để dời ảnh (chuyển sang “dời cả vùng” để dời luôn khung).
 5. **Chụp nền trống**: bấm khi vùng đặt ảnh **không có ai/vật gì đứng trước**.
 6. Chọn **kiểu camera**:
@@ -34,6 +40,8 @@ Lần đầu app cần internet để tải thư viện (MediaPipe ~ vài MB, Op
    - *Cầm tay / di chuyển*: đặt 4 góc lúc vùng đang trống → bấm **Khoá vùng & bám theo**. Ảnh sẽ bám theo mặt phẳng khi camera di chuyển.
 7. **Xuất**: Chụp ảnh (PNG), Quay video (WebM/MP4), Toàn màn hình (phím `F`; phím `H` ẩn/hiện tay cầm khi trình chiếu).
 8. **Xem trực tiếp trên máy khác**: xem mục 3 bên dưới.
+
+Trên điện thoại cầm dọc, khung camera **luôn dính ở trên cùng**, phần cài đặt cuộn bên dưới, nên chỉnh tới đâu thấy kết quả tới đó. Cầm ngang thì cài đặt nằm cột bên phải.
 
 Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang sẽ còn nguyên.
 
@@ -86,6 +94,9 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 | Bỏ che (camera đã dịch 60 px) | tìm lại đúng vị trí trong ~0,3 s, sai số 0,9–3 px |
 | Phát sang máy xem (2 trình duyệt riêng) | nhận hình 640×360 liên tục; nút trên máy xem đổi mẫu bên máy quay tức thì |
 | Máy quay tải lại trang | giữ nguyên mã, máy xem tự nối lại sau ~1,4 s |
+| Tự dò khung (tấm bảng 280×200 trên tường nhiều hoạ tiết) | tìm đúng, lệch 4 px; tỉ lệ đo 1,39 (thật 1,40) |
+| Hút góc khi thả lệch ~15 px | về đúng góc, còn lệch 1,5 px |
+| Tỉ lệ thật khi nhìn xiên (mô phỏng camera pinhole) | đúng 1,500 / 0,625 / 4,000, trong khi đo theo hình trên màn sai tới 35% |
 
 ## 6. Mẹo & giới hạn
 - **Camera tự đổi sáng** làm “so sánh nền” báo nhầm: bấm **Khoá sáng** (nếu camera hỗ trợ), giữ bật “Tự cập nhật nền”, hoặc chụp nền lại.
@@ -93,3 +104,5 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 - Chế độ cầm tay cần vùng hoặc xung quanh vùng có **hoạ tiết/cạnh**. Tường trơn tuyệt đối thì không có gì để bám, hãy dùng chân máy hoặc kéo vùng rộng ra.
 - Vật được đặt **cố định lâu** trước vùng sẽ tiếp tục được coi là vật che, bấm “Chụp nền trống” lại nếu muốn ảnh phủ lên nó.
 - Máy yếu: app tự giãn nhịp chạy AI (HUD góc trái hiện thời gian xử lý).
+- Tự dò khung / hút góc cần tải OpenCV (~10 MB) ở lần dùng đầu. Tường trơn không có mốc thì không có gì để dò: dán 4 dấu băng keo ở 4 góc vùng cần vẽ là dò và hút góc rất chuẩn.
+- Tỉ lệ thật tự tính chính xác nhất khi vùng là hình chữ nhật thật (đánh dấu bằng băng keo vuông góc) và camera nhìn xiên theo cả 2 chiều. Nếu camera chỉ nghiêng 1 chiều, app dùng tiêu cự mặc định nên sai lệch khoảng vài %. Cần chuẩn tuyệt đối thì nhập kích thước.
