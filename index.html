@@ -120,6 +120,19 @@ details.proj>summary{list-style:none;min-height:44px;display:flex;align-items:ce
 .next b{color:var(--acc)}
 .row .hint{margin:0;flex:1 1 140px}
 @media(max-width:420px){details.step .body{padding-left:0}.cards{grid-template-columns:1fr}}
+#palList{display:grid;gap:6px;margin:8px 0}
+.pal{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;padding:8px 10px;min-height:56px;border-radius:10px}
+.pal.sel{border-color:var(--acc);background:#22302b}
+.pal .sws{display:flex;align-items:center;gap:3px}
+.pal .sw{width:30px;height:30px;border-radius:7px;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;font:700 13px Inter,sans-serif;color:#fff;text-shadow:0 0 3px #000,0 0 2px #000}
+.pal .mx{width:18px;height:30px;border-radius:5px;border:1px solid rgba(255,255,255,.25)}
+.pal .rc{font-size:13px;line-height:1.3}.pal .rc small{display:block;color:var(--mute);font-size:11.5px}
+.pal .pc{font-size:12px;color:var(--mute);text-align:right;white-space:nowrap}
+.pchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.pchip{display:flex;align-items:center;gap:6px;padding:0 10px 0 6px;min-height:36px;border-radius:99px;font-size:13px}
+.pchip i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.3);display:block}
+.pchip.off{opacity:.45;text-decoration:line-through}
+.vpal{position:absolute;left:0;right:0;bottom:0;max-height:45%;overflow:auto;background:rgba(17,17,17,.94);padding:10px;display:grid;gap:6px}
 /* Điện thoại dọc: khung camera dính trên cùng, cài đặt cuộn bên dưới -> chỉnh tới đâu thấy tới đó */
 @media(max-width:900px) and (orientation:portrait){body{overflow:auto}.app{display:block;height:auto}
   .stage{position:sticky;top:0;z-index:5;height:46vh;height:46svh;box-shadow:0 6px 18px rgba(0,0,0,.45)}
@@ -244,7 +257,23 @@ details.proj>summary{list-style:none;min-height:44px;display:flex;align-items:ce
     <details class="step" name="step">
       <summary><span class="n">3</span><span class="t">Kiểu mẫu để vẽ<small>Mẫu hiện ra trông thế nào</small><span class="st" id="st3"></span></span></summary>
       <div class="body">
-        <div class="row"><select id="style" aria-label="Kiểu mẫu"><option value="img">Ảnh màu — xem màu, bố cục</option><option value="edge">Nét viền — dễ tô theo nhất</option></select><input type="color" id="lineCol" value="#ff2bd6" title="Màu nét viền &amp; lưới" aria-label="Màu nét"></div>
+        <div class="row"><select id="style" aria-label="Kiểu mẫu"><option value="img">Ảnh màu — xem màu, bố cục</option><option value="edge">Nét viền — dễ tô theo nhất</option><option value="paint">Tô màu theo số — mảng màu đánh số, công thức pha</option></select><input type="color" id="lineCol" value="#ff2bd6" title="Màu nét viền &amp; lưới" aria-label="Màu nét"></div>
+        <div id="paintRow">
+          <div class="hint">Ảnh được gộp thành ít mảng màu, mỗi mảng có số. <b>Số nhỏ = màu sáng, tô trước</b>; màu tối và chi tiết tô sau. Bấm vào một màu để chỉ hiện các mảng của màu đó.</div>
+          <div class="sl"><span>Số màu</span><input type="range" id="paintK" min="3" max="16" value="8"><output id="oPaintK">8</output></div>
+          <div class="sl"><span>Độ đơn giản</span><input type="range" id="paintSimp" min="1" max="5" value="3"><output id="oPaintSimp">3</output></div>
+          <div class="hint">Ít màu + đơn giản cao = dễ tô, mảng to. Nhiều màu = giống ảnh hơn nhưng nhiều mảng nhỏ.</div>
+          <label class="ck"><input type="checkbox" id="chkPaintFill" checked>Phủ màu xem trước lên tường</label>
+          <label class="ck"><input type="checkbox" id="chkPaintBg" checked>Bỏ qua màu nền của ảnh (giữ màu tường)</label>
+          <div class="row"><button id="btnPalAll" hidden>Hiện tất cả màu</button></div>
+          <div id="palList"></div>
+          <div class="hint" id="palHint"></div>
+          <details class="more"><summary>Màu sơn tôi đang có</summary>
+            <div class="hint">Bấm để bật/tắt màu bạn có; công thức pha chỉ dùng các màu đang bật. Có thể thêm màu riêng (chọn màu gần giống lon sơn).</div>
+            <div class="pchips" id="paintSet"></div>
+            <div class="row"><input type="color" id="newPaintCol" value="#808080" aria-label="Màu sơn mới"><input type="text" id="newPaintName" placeholder="Tên màu (vd: Xanh lơ)" autocomplete="off"><button id="btnAddPaint">Thêm</button></div>
+          </details>
+        </div>
         <div id="edgeRow"><div class="sl"><span>Chi tiết nét</span><input type="range" id="detail" min="1" max="100" value="40"><output id="oDetail">40</output></div>
           <div class="sl"><span>Độ dày nét</span><input type="range" id="thick" min="1" max="4" value="2"><output id="oThick">2</output></div>
           <div class="hint">Chi tiết thấp = chỉ đường chính; cao = nhiều chi tiết. Chọn màu nét tương phản với tường.</div></div>
@@ -302,8 +331,8 @@ details.proj>summary{list-style:none;min-height:44px;display:flex;align-items:ce
   </aside>
 </main>
 <div id="viewer" hidden>
-  <div id="vstage"><video id="rv" playsinline muted autoplay></video><div class="pill warn" id="vstat">Đang kết nối…</div></div>
-  <div class="vbar"><button id="vShow">Ẩn mẫu</button><button id="vOpaM">Mờ −</button><button id="vOpaP">Đậm +</button><button id="vStyle">Nét viền</button><button id="vGrid">Lưới</button><button id="vBlink">Nhấp nháy</button><button id="vRot">Xoay</button><button id="vReset">Vừa màn</button><button id="vFull">Toàn màn</button></div>
+  <div id="vstage"><video id="rv" playsinline muted autoplay></video><div class="pill warn" id="vstat">Đang kết nối…</div><div class="vpal" id="vPal" hidden></div></div>
+  <div class="vbar"><button id="vShow">Ẩn mẫu</button><button id="vOpaM">Mờ −</button><button id="vOpaP">Đậm +</button><button id="vStyle">Nét viền</button><button id="vGrid">Lưới</button><button id="vPalBtn" hidden>Bảng màu</button><button id="vBlink">Nhấp nháy</button><button id="vRot">Xoay</button><button id="vReset">Vừa màn</button><button id="vFull">Toàn màn</button></div>
 </div>
 <video id="vid" playsinline muted loop style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none"></video>
 
@@ -353,6 +382,7 @@ const S = {
   snap:true, aspMode:'auto', realW:0, realH:0,
   occStyle:'dim', gain:1, bgLum:null, edit:'img', clipTold:false, surface:'plane',
   meshOn:false, meshN:4, mesh:null, clipMode:'none', poly:[], objMask:null, objTol:24, polyEdit:false, pick:false,
+  paintK:8, paintSimp:3, paintFill:true, paintBg:true, paintSel:-1, pal:[], paints:null,
   kbps:5, code:'', sig:'', turnUrl:'', turnUser:'', turnPass:''
 };
 const filt = Array.from({length:8},()=>new OneEuro());
@@ -367,7 +397,7 @@ float dif(vec3 a,vec3 b){float la=dot(a,vec3(.299,.587,.114)),lb=dot(b,vec3(.299
  vec3 ca=a/(a.r+a.g+a.b+.08),cb=b/(b.r+b.g+b.b+.08);return .75*abs(la-lb)+1.7*length(ca-cb);}
 bool inside(vec2 p){return p.x>=0.&&p.y>=0.&&p.x<=1.&&p.y<=1.;}`;
 const FS_DISP=COMMON+`
-uniform sampler2D uVid,uImg,uBg,uSeg,uEdge;uniform mat3 uHinv,uC2R;uniform vec2 uTx,uSize,uOff;uniform vec3 uLine;uniform float uStyle,uGrid;
+uniform sampler2D uVid,uImg,uBg,uSeg,uEdge;uniform mat3 uHinv,uC2R;uniform vec2 uTx,uSize,uOff;uniform vec3 uLine;uniform float uStyle,uGrid;uniform sampler2D uPaint;
 uniform float uA,uScale,uRot,uClip,uOpa,uSegOn,uDiffOn,uTh,uMask,uHas,uMesh,uClipOn,uGain,uOccK;uniform sampler2D uMeshTex,uClipTex;uniform vec2 uBx;
 // so với nền đã chụp: nhân hệ số bù sáng, và lấy sai khác NHỎ NHẤT khi xê dịch nền ±2 px (chịu được rung / bám lệch nhẹ)
 float bgd(vec2 p){vec3 h=uC2R*vec3(p,1.);if(h.z<=0.)return 0.;vec2 q=h.xy/h.z;if(!inside(q))return 0.;vec3 c=texture2D(uVid,p).rgb;vec2 o=uBx*2.;
@@ -383,7 +413,7 @@ void main(){vec2 p=vec2(vUV.x,1.-vUV.y);vec3 col=texture2D(uVid,p).rgb;
    if(uClipOn>.5){vec3 hc=uC2R*vec3(p,1.);vec2 qc=hc.xy/hc.z;m*=(hc.z>0.&&inside(qc))?smoothstep(.3,.7,texture2D(uClipTex,qc).r):0.;}
    float gr=0.;if(uGrid>.5){vec2 n=uSize/(max(uSize.x,uSize.y)/uGrid);vec2 g=abs(fract(iu*n+.5)-.5)/n*uSize;float w=.0035/uScale;
     gr=(1.-smoothstep(w*.5,w,min(g.x,g.y)))*step(0.,min(min(iu.x,1.-iu.x),min(iu.y,1.-iu.y))+w);}
-   if(m>0.){vec4 ic=uStyle>.5?texture2D(uEdge,clamp(iu,0.,1.)):texture2D(uImg,clamp(iu,0.,1.));float occ=0.;
+   if(m>0.){vec2 cu=clamp(iu,0.,1.);vec4 ic=uStyle>1.5?texture2D(uPaint,cu):(uStyle>.5?texture2D(uEdge,cu):texture2D(uImg,cu));float occ=0.;
     if(uSegOn>.5){vec2 o3=uTx*3.;float sg=min(min(texture2D(uSeg,p).r,min(texture2D(uSeg,p+vec2(o3.x,0.)).r,texture2D(uSeg,p-vec2(o3.x,0.)).r)),min(texture2D(uSeg,p+vec2(0.,o3.y)).r,texture2D(uSeg,p-vec2(0.,o3.y)).r));
      occ=smoothstep(.45,.7,sg);}   // co mask lại ~3px cho sát tay
     if(uDiffOn>.5){vec2 o=uTx*2.;float d=(bgd(p)*2.+bgd(p+vec2(o.x,0.))+bgd(p-vec2(o.x,0.))+bgd(p+vec2(0.,o.y))+bgd(p-vec2(0.,o.y)))/6.;
@@ -405,7 +435,7 @@ const PM=mkProg(`precision highp float;varying vec2 vT;vec2 enc(float x){float q
 void main(){gl_FragColor=vec4(enc(vT.x),enc(vT.y));}`,`attribute vec2 aP;attribute vec2 aT;varying vec2 vT;void main(){vT=aT;gl_Position=vec4(aP,0.,1.);}`,['aP','aT']);
 const vb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,vb); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
 function mkTex(){ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D,k,v); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,0])); return t; }
-const T={vid:mkTex(), img:mkTex(), edge:mkTex(), seg:mkTex(), bg:[mkTex(),mkTex()], mesh:mkTex(), clip:mkTex()};
+const T={vid:mkTex(), img:mkTex(), edge:mkTex(), paint:mkTex(), seg:mkTex(), bg:[mkTex(),mkTex()], mesh:mkTex(), clip:mkTex()};
 gl.bindTexture(gl.TEXTURE_2D,T.mesh); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 const FBM=gl.createFramebuffer(); let meshW=0, meshH=0;
 function allocMesh(w,h){ meshW=w; meshH=h; gl.bindTexture(gl.TEXTURE_2D,T.mesh); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null); gl.bindFramebuffer(gl.FRAMEBUFFER,FBM); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,T.mesh,0); gl.bindFramebuffer(gl.FRAMEBUFFER,null); }
@@ -460,7 +490,7 @@ function displayPass(){
     gl.uniform2f(PD.u('uTx'),1/S.vw,1/S.vh); gl.uniform2fv(PD.u('uSize'),fitSize()); gl.uniform2f(PD.u('uOff'),S.off[0],S.off[1]);
     gl.uniform1f(PD.u('uA'),regionAspect()); gl.uniform1f(PD.u('uScale'),S.scale); gl.uniform1f(PD.u('uRot'),S.rot*Math.PI/180);
     gl.uniform1f(PD.u('uClip'),S.clip?1:0); gl.uniform1f(PD.u('uOpa'),S.opa); gl.uniform1f(PD.u('uSegOn'),S.segOn&&seg.ready?1:0);
-    bind(PD,'uEdge',4,T.edge); gl.uniform1f(PD.u('uStyle'),S.style==='edge'?1:0); gl.uniform1f(PD.u('uGrid'),S.grid?S.gridN:0);
+    bind(PD,'uEdge',4,T.edge); bind(PD,'uPaint',7,T.paint); gl.uniform1f(PD.u('uStyle'),S.style==='paint'?2:S.style==='edge'?1:0); gl.uniform1f(PD.u('uGrid'),S.grid?S.gridN:0);
     const lc=parseInt(S.line.slice(1),16); gl.uniform3f(PD.u('uLine'),(lc>>16&255)/255,(lc>>8&255)/255,(lc&255)/255);
     gl.uniform1f(PD.u('uMesh'),S.meshOn&&S.mesh?1:0); bind(PD,'uMeshTex',5,T.mesh); gl.uniform1f(PD.u('uClipOn'),clipActive()?1:0); bind(PD,'uClipTex',6,T.clip);
     gl.uniform1f(PD.u('uGain'),S.gain); gl.uniform2f(PD.u('uBx'),1/bgW,1/bgH); gl.uniform1f(PD.u('uOccK'),S.occStyle==='hide'?1:S.occStyle==='dim'?.7:0);
@@ -493,7 +523,7 @@ function setImage(bitmap){
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c); gl.generateMipmap(gl.TEXTURE_2D);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
   S.img=true; const tb=$('thumb'); tb.src=c.toDataURL('image/png'); tb.style.display='block';
-  const k0=Math.min(1,1024/Math.max(w,h)), ec=document.createElement('canvas'); ec.width=Math.max(1,Math.round(w*k0)); ec.height=Math.max(1,Math.round(h*k0)); ec.getContext('2d').drawImage(bitmap,0,0,ec.width,ec.height); S.imgCanvas=ec; makeEdges();
+  const k0=Math.min(1,1024/Math.max(w,h)), ec=document.createElement('canvas'); ec.width=Math.max(1,Math.round(w*k0)); ec.height=Math.max(1,Math.round(h*k0)); ec.getContext('2d').drawImage(bitmap,0,0,ec.width,ec.height); S.imgCanvas=ec; makeEdges(); S.palImg=null; if(S.style==='paint') paintSoon(0);
 }
 /* Nét viền để tô theo: Sobel trên ảnh mẫu, giữ phần trăm cạnh mạnh nhất theo “Chi tiết nét” */
 function makeEdges(){
@@ -817,10 +847,10 @@ function noClipOnce(){ if(S.clip){ S.clip=false; syncUI(); if(!S.clipTold){ S.cl
 $('imgWcm').oninput=e=>{ const v=+e.target.value; if(!(v>0)||!(S.realW>0)) return; const A=regionAspect(), sz=fitSize(); S.scale=Math.max(.05,Math.min(20,v*A/(S.realW*sz[0]))); noClipOnce(); syncUI(); save(); };
 
 /* ================= Bảng điều khiển ================= */
-const sliders={scale:['oScale',v=>v+'%'],rot:['oRot',v=>v+'°'],offX:['oOffX',v=>v],offY:['oOffY',v=>v],opa:['oOpa',v=>v+'%'],sens:['oSens',v=>v],detail:['oDetail',v=>v],thick:['oThick',v=>v],gridN:['oGridN',v=>v],kbps:['oKbps',v=>v+' Mb']};
-const setters={scale:v=>S.scale=v/100,rot:v=>S.rot=v,offX:v=>S.off[0]=v/100,offY:v=>S.off[1]=v/100,opa:v=>S.opa=v/100,sens:v=>S.sens=v,detail:v=>{S.detail=v;edgeSoon();},thick:v=>{S.thick=v;edgeSoon();},gridN:v=>S.gridN=v,kbps:v=>{S.kbps=v;applyBitrate();}};
+const sliders={scale:['oScale',v=>v+'%'],rot:['oRot',v=>v+'°'],offX:['oOffX',v=>v],offY:['oOffY',v=>v],opa:['oOpa',v=>v+'%'],sens:['oSens',v=>v],detail:['oDetail',v=>v],thick:['oThick',v=>v],gridN:['oGridN',v=>v],paintK:['oPaintK',v=>v],paintSimp:['oPaintSimp',v=>v],kbps:['oKbps',v=>v+' Mb']};
+const setters={scale:v=>S.scale=v/100,rot:v=>S.rot=v,offX:v=>S.off[0]=v/100,offY:v=>S.off[1]=v/100,opa:v=>S.opa=v/100,sens:v=>S.sens=v,detail:v=>{S.detail=v;edgeSoon();},thick:v=>{S.thick=v;edgeSoon();},gridN:v=>S.gridN=v,paintK:v=>{S.paintK=v;paintSoon();},paintSimp:v=>{S.paintSimp=v;paintSoon();},kbps:v=>{S.kbps=v;applyBitrate();}};
 function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textContent=sliders[id][1](v); };
-  set('scale',Math.round(S.scale*100)); set('rot',Math.round(S.rot)); set('offX',Math.round(S.off[0]*100)); set('offY',Math.round(S.off[1]*100)); set('opa',Math.round(S.opa*100)); set('sens',S.sens); set('detail',S.detail); set('thick',S.thick); set('gridN',S.gridN); set('kbps',S.kbps);
+  set('scale',Math.round(S.scale*100)); set('rot',Math.round(S.rot)); set('offX',Math.round(S.off[0]*100)); set('offY',Math.round(S.off[1]*100)); set('opa',Math.round(S.opa*100)); set('sens',S.sens); set('detail',S.detail); set('thick',S.thick); set('gridN',S.gridN); set('paintK',S.paintK); set('paintSimp',S.paintSimp); $('chkPaintFill').checked=S.paintFill; $('chkPaintBg').checked=S.paintBg; set('kbps',S.kbps);
   $('style').value=S.style; $('lineCol').value=S.line; $('chkGrid').checked=S.grid; $('chkBlink').checked=S.blink; $('btnShow').textContent=S.show?'Ẩn ảnh mẫu':'Hiện ảnh mẫu'; $('btnShow').classList.toggle('on',!S.show);
   for(const k of ['sig','turnUrl','turnUser','turnPass']) $(k).value=S[k]||'';
   $('chkMesh').checked=S.meshOn; $('meshN').value=S.meshN; $('clipMode').value=S.clipMode; $('objTol').value=S.objTol; $('oObjTol').textContent=S.objTol; updClipUI();
@@ -831,8 +861,126 @@ function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textCont
   $('cmHint').innerHTML=real?'Gõ chiều rộng mong muốn, chiều cao tự tính theo tỉ lệ ảnh.':'Muốn ảnh đúng số cm: đo khung chữ nhật đã đặt ở trên, chọn <b>Biết kích thước thật của khung</b> rồi nhập.'; }
 for(const id of Object.keys(sliders)) $(id).addEventListener('input',e=>{ const v=+e.target.value; $(sliders[id][0]).textContent=sliders[id][1](v);
   setters[id](v); save(); });
-$('style').onchange=e=>{ S.style=e.target.value; save(); };
-$('lineCol').oninput=e=>{ S.line=e.target.value; edgeSoon(); save(); };
+$('style').onchange=e=>{ S.style=e.target.value; if(S.style==='paint') paintSoon(0); syncUI(); save(); };
+/* ================= Tô màu theo số + công thức pha sơn ================= */
+// ---- mô hình pha màu: trung bình nhân có trọng số của độ phản xạ (gần đúng pha sơn: trừ màu) ----
+const hex2rgb=h=>{const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255];};
+const rgb2hex=c=>'#'+c.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const s2l=v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}, l2s=v=>255*(v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055);
+function lin2lab([r,g,b]){ let x=(r*.4124+g*.3576+b*.1805)/.95047, y=r*.2126+g*.7152+b*.0722, z=(r*.0193+g*.1192+b*.9505)/1.08883;
+  const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116; x=f(x);y=f(y);z=f(z); return [116*y-16,500*(x-y),200*(y-z)]; }
+const rgb2lab=c=>lin2lab(c.map(s2l)); const dE=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+const EPS=.004;
+function mixLin(lnP,ws){ const o=[0,0,0]; for(let k=0;k<lnP.length;k++) for(let c=0;c<3;c++) o[c]+=ws[k]*lnP[k][c]; return o.map(v=>Math.exp(v)-EPS); }
+const P3=[1,2,3,4,6,8,12,16];
+function recipe(targetRgb,paints,quick){
+  const P=paints.filter(p=>p.on), L=P.map(p=>hex2rgb(p.c).map(s2l)), lnP=L.map(c=>c.map(v=>Math.log(v+EPS))), T=rgb2lab(targetRgb); let best=null;
+  const consider=(idx,parts)=>{ const tot=parts.reduce((a,b)=>a+b,0), m=mixLin(idx.map(i=>lnP[i]),parts.map(p=>p/tot)), e=dE(lin2lab(m),T), sc=e+.6*(idx.length-1)+.025*tot;
+    if(!best||sc<best.sc) best={sc,e,idx:idx.slice(),parts:parts.slice(),mix:m.map(l2s)}; };
+  const n=P.length;
+  for(let i=0;i<n;i++) consider([i],[1]);
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let a=1;a<=20;a++) for(let b=1;b<=20;b++) if(a===1||b===1||a<=10&&b<=10) consider([i,j],[a,b]);
+  if(!quick) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++) for(const a of P3) for(const b of P3) for(const c of P3) consider([i,j,k],[a,b,c]);
+  const g=(x,y)=>y?g(y,x%y):x, gg=best.parts.reduce(g); const parts=best.parts.map(v=>v/gg), tot=parts.reduce((a,b)=>a+b,0);
+  const items=best.idx.map((i,k)=>({name:P[i].n,hex:P[i].c,parts:parts[k]})).sort((a,b)=>b.parts-a.parts);
+  const txt=items.length===1?`${items[0].name} nguyên chất`:items.map(it=>it.parts/tot<=.07&&it.parts===1?`chút ${it.name}`:`${it.parts} ${it.name}`).join(' + ');
+  return {txt,items,e:best.e,mix:best.mix};
+}
+
+const PAINTS_DEF=[{n:'Trắng',c:'#f4f4f0',on:true},{n:'Đen',c:'#1e1e1e',on:true},{n:'Đỏ',c:'#c8102e',on:true},{n:'Vàng chanh',c:'#f6d40e',on:true},{n:'Xanh dương',c:'#203a8f',on:true},
+  {n:'Xanh lá',c:'#1e8a3a',on:false},{n:'Cam',c:'#f07a16',on:false},{n:'Nâu đất',c:'#6b4226',on:false},{n:'Hồng sen',c:'#c2187a',on:false},{n:'Vàng đất',c:'#c99a2e',on:false},{n:'Xanh lơ',c:'#1488c8',on:false},{n:'Tím',c:'#5b2a86',on:false}];
+const paintsNow=()=>{ if(!Array.isArray(S.paints)||!S.paints.length) S.paints=clone(PAINTS_DEF); return S.paints; };
+let paintT=0; function paintSoon(ms=200){ clearTimeout(paintT); paintT=setTimeout(()=>{ try{ buildPaint(); }catch(e){ console.error(e); toast('Không tạo được bảng màu: '+e.message); } },ms); }
+function buildPaint(){ // gộp màu (k-means trong Lab) -> làm mịn mảng -> đánh số -> công thức pha
+  const sc=S.imgCanvas; if(!sc) return; const k0=Math.min(1,400/Math.max(sc.width,sc.height)), w=Math.max(8,Math.round(sc.width*k0)), h=Math.max(8,Math.round(sc.height*k0)), n=w*h;
+  const cvx=document.createElement('canvas'); cvx.width=w; cvx.height=h; const x=cvx.getContext('2d',{willReadFrequently:true}); x.drawImage(sc,0,0,w,h); const d=x.getImageData(0,0,w,h).data;
+  const lab=new Float32Array(n*3), ok=new Uint8Array(n); for(let i=0;i<n;i++){ if(d[4*i+3]<128) continue; ok[i]=1; const L=rgb2lab([d[4*i],d[4*i+1],d[4*i+2]]); lab[3*i]=L[0]; lab[3*i+1]=L[1]; lab[3*i+2]=L[2]; }
+  // màu nền = trung vị viền ảnh (nếu viền gần như một màu)
+  let bg=null; if(S.paintBg){ const b=[]; for(let i=0;i<w;i++) b.push(i,(h-1)*w+i); for(let j=0;j<h;j++) b.push(j*w,j*w+w-1); const v=b.filter(i=>ok[i]);
+    if(v.length>w){ const med=[0,1,2].map(c=>{ const a=v.map(i=>lab[3*i+c]).sort((p,q)=>p-q); return a[a.length>>1]; }); const near=v.filter(i=>dE([lab[3*i],lab[3*i+1],lab[3*i+2]],med)<12).length; if(near>v.length*.6) bg=med; } }
+  const use=new Uint8Array(n); for(let i=0;i<n;i++) use[i]=ok[i]&&!(bg&&dE([lab[3*i],lab[3*i+1],lab[3*i+2]],bg)<10)?1:0;
+  const idx=[]; for(let i=0;i<n;i++) if(use[i]) idx.push(i); if(idx.length<20){ S.pal=[]; S.palImg=null; renderPaintTex(); updPalUI(); return; }
+  // k-means++ trên mẫu
+  const P=i=>[lab[3*i],lab[3*i+1],lab[3*i+2]];
+  // chỉ lấy mẫu ở vùng màu phẳng (bỏ điểm mép nhoè giữa 2 màu) để màu nhỏ như mũi, mắt không bị lấn át
+  const flat=idx.filter(i=>{ const x2=i%w, y=(i/w)|0; if(x2<1||y<1||x2>=w-1||y>=h-1) return false; const c=P(i); return [i-1,i+1,i-w,i+w].every(j=>dE(c,P(j))<6); });
+  const pool=flat.length>200?flat:idx, smp=[]; const st=Math.max(1,Math.floor(pool.length/12000)); for(let i=0;i<pool.length;i+=st) smp.push(pool[i]);
+  const K=Math.min(S.paintK,smp.length);
+  // khởi tạo “xa nhất”: màu trung vị rồi lần lượt màu khác xa nhất so với các màu đã chọn (không bỏ sót màu nhỏ)
+  let C=[P(smp[(smp.length*.5)|0])]; const md=smp.map(i=>dE(P(i),C[0]));
+  while(C.length<K){ let bj=0; for(let j=1;j<smp.length;j++) if(md[j]>md[bj]) bj=j; if(md[bj]<3) break; const c=P(smp[bj]); C.push(c); for(let j=0;j<smp.length;j++){ const e=dE(P(smp[j]),c); if(e<md[j]) md[j]=e; } }
+  const KC=C.length;
+  for(let it=0;it<14;it++){ const acc=C.map(()=>[0,0,0,0]); for(const i of smp){ let bi=0,bd=1e9; for(let c=0;c<KC;c++){ const e=dE(P(i),C[c]); if(e<bd){ bd=e; bi=c; } } const a=acc[bi]; a[0]+=lab[3*i]; a[1]+=lab[3*i+1]; a[2]+=lab[3*i+2]; a[3]++; }
+    C=C.map((c,k)=>acc[k][3]?[acc[k][0]/acc[k][3],acc[k][1]/acc[k][3],acc[k][2]/acc[k][3]]:c); }
+  let lb=new Int16Array(n).fill(-1); for(let i=0;i<n;i++) if(use[i]){ let bi=0,bd=1e9; for(let c=0;c<KC;c++){ const e=dE(P(i),C[c]); if(e<bd){ bd=e; bi=c; } } lb[i]=bi; }
+  // làm mịn: lọc đa số 5×5, số lần theo “độ đơn giản”
+  for(let pass=0;pass<S.paintSimp;pass++){ const o=new Int16Array(lb); const cnt=new Int32Array(KC);
+    for(let y=0;y<h;y++) for(let x2=0;x2<w;x2++){ const i=y*w+x2; if(lb[i]<0) continue; cnt.fill(0); for(let dy=-2;dy<=2;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue; for(let dx=-2;dx<=2;dx++){ const xx=x2+dx; if(xx<0||xx>=w) continue; const v=lb[yy*w+xx]; if(v>=0) cnt[v]++; } }
+      let bv=lb[i],bc=-1; for(let c=0;c<KC;c++) if(cnt[c]>bc){ bc=cnt[c]; bv=c; } o[i]=bv; } lb=o; }
+  // mảng quá nhỏ -> nhập vào mảng kề lớn nhất
+  const minA=Math.max(6,n*.00006*S.paintSimp*S.paintSimp);   // chỉ gộp vụn rất nhỏ; giữ mắt, mũi…
+  for(let round=0;round<2;round++){ const comp=new Int32Array(n).fill(-1), comps=[]; const q=new Int32Array(n);
+    for(let i=0;i<n;i++){ if(lb[i]<0||comp[i]>=0) continue; const c=comps.length, L=lb[i]; let qh=0,qt=0; q[qt++]=i; comp[i]=c; const px=[]; const nb=new Map();
+      while(qh<qt){ const j=q[qh++]; px.push(j); const jx=j%w, jy=(j/w)|0; for(const [ax,ay] of [[1,0],[-1,0],[0,1],[0,-1]]){ const xx=jx+ax, yy=jy+ay; if(xx<0||yy<0||xx>=w||yy>=h) continue; const t=yy*w+xx;
+        if(lb[t]===L){ if(comp[t]<0){ comp[t]=c; q[qt++]=t; } } else if(lb[t]>=0) nb.set(lb[t],(nb.get(lb[t])||0)+1); } }
+      comps.push({L,px,nb}); }
+    let ch=0; for(const c of comps) if(c.px.length<minA&&c.nb.size){ let bl=-1,bc=-1; for(const [l,v] of c.nb) if(v>bc){ bc=v; bl=l; } for(const j of c.px) lb[j]=bl; ch++; }
+    if(!ch) break; }
+  // màu cuối = trung bình màu thật của từng nhãn; đánh số theo độ sáng (sáng trước)
+  const sum=Array.from({length:KC},()=>[0,0,0,0]); for(let i=0;i<n;i++) if(lb[i]>=0){ const a=sum[lb[i]]; a[0]+=d[4*i]; a[1]+=d[4*i+1]; a[2]+=d[4*i+2]; a[3]++; }
+  const used=sum.map((a,k)=>({k,cnt:a[3],rgb:a[3]?[a[0]/a[3],a[1]/a[3],a[2]/a[3]]:null})).filter(o=>o.cnt>0);
+  used.forEach(o=>o.L=rgb2lab(o.rgb)[0]); used.sort((a,b)=>b.L-a.L); const remap=new Int16Array(KC).fill(-1); used.forEach((o,ii)=>remap[o.k]=ii);
+  for(let i=0;i<n;i++) if(lb[i]>=0) lb[i]=remap[lb[i]];
+  const tot=used.reduce((a,o)=>a+o.cnt,0)||1;
+  // vị trí ghi số: điểm sâu nhất trong mỗi mảng (biến đổi khoảng cách chamfer)
+  const comp=new Int32Array(n).fill(-1), labels=[]; const q=new Int32Array(n);
+  const dist=new Float32Array(n); for(let i=0;i<n;i++) dist[i]=lb[i]<0?0:1e6;
+  for(let y=0;y<h;y++) for(let x2=0;x2<w;x2++){ const i=y*w+x2; if(lb[i]<0) continue; let v=dist[i]; const L=lb[i];
+    if(x2===0||y===0) v=1; else { if(lb[i-1]!==L) v=1; else v=Math.min(v,dist[i-1]+1); if(lb[i-w]!==L) v=1; else v=Math.min(v,dist[i-w]+1); if(x2>0&&lb[i-w-1]===L) v=Math.min(v,dist[i-w-1]+1.41); if(x2<w-1&&lb[i-w+1]===L) v=Math.min(v,dist[i-w+1]+1.41); }
+    dist[i]=v; }
+  for(let y=h-1;y>=0;y--) for(let x2=w-1;x2>=0;x2--){ const i=y*w+x2; if(lb[i]<0) continue; let v=dist[i]; const L=lb[i];
+    if(x2===w-1||y===h-1) v=Math.min(v,1); else { if(lb[i+1]!==L) v=Math.min(v,1); else v=Math.min(v,dist[i+1]+1); if(lb[i+w]!==L) v=Math.min(v,1); else v=Math.min(v,dist[i+w]+1); if(lb[i+w+1]===L) v=Math.min(v,dist[i+w+1]+1.41); if(x2>0&&lb[i+w-1]===L) v=Math.min(v,dist[i+w-1]+1.41); }
+    dist[i]=v; }
+  for(let i=0;i<n;i++){ if(lb[i]<0||comp[i]>=0) continue; const L=lb[i]; let qh=0,qt=0; q[qt++]=i; comp[i]=1; let best=i, area=0;
+    while(qh<qt){ const j=q[qh++]; area++; if(dist[j]>dist[best]) best=j; const jx=j%w, jy=(j/w)|0; for(const [ax,ay] of [[1,0],[-1,0],[0,1],[0,-1]]){ const xx=jx+ax, yy=jy+ay; if(xx<0||yy<0||xx>=w||yy>=h) continue; const t=yy*w+xx; if(lb[t]===L&&comp[t]<0){ comp[t]=1; q[qt++]=t; } } }
+    if(area>=Math.max(4,minA*.5)) labels.push({L,x:(best%w+.5)/w,y:(((best/w)|0)+.5)/h,r:dist[best]/Math.max(w,h)}); }
+  const paints=paintsNow();
+  S.pal=used.map((o,ii)=>{ const r=recipe(o.rgb,paints); let sug=null;
+    if(r.e>12){ for(const p of paints) if(!p.on){ const r2=recipe(o.rgb,paints.map(q2=>q2===p?{...q2,on:true}:q2),true); if(r2.e<r.e-5&&(!sug||r2.e<sug.e)) sug={name:p.n,e:r2.e,txt:r2.txt}; } }
+    return {num:ii+1,hex:rgb2hex(o.rgb),frac:o.cnt/tot,recipe:r,sug}; });
+  S.palImg={w,h,lb,labels}; if(S.paintSel>=S.pal.length) S.paintSel=-1; renderPaintTex(); updPalUI(); broadcast(); }
+function renderPaintTex(){
+  const P=S.palImg; const big=document.createElement('canvas');
+  if(!P){ big.width=big.height=2; } else {
+    const {w,h,lb,labels}=P, sel=S.paintSel; const sm=document.createElement('canvas'); sm.width=w; sm.height=h; const sx=sm.getContext('2d'), id=sx.createImageData(w,h), od=id.data;
+    const cols=S.pal.map(p=>hex2rgb(p.hex)), lc=hex2rgb(S.line);
+    for(let i=0;i<w*h;i++){ const L=lb[i]; if(L<0) continue; const x=i%w, y=(i/w)|0; const edge=(x<w-1&&lb[i+1]!==L)||(y<h-1&&lb[i+w]!==L)||(x>0&&lb[i-1]!==L)||(y>0&&lb[i-w]!==L);
+      const on=sel<0||L===sel; let c=cols[L], a=S.paintFill?(on?(sel<0?150:215):25):0;
+      if(edge){ c=lc; a=on?255:90; }
+      od[4*i]=c[0]; od[4*i+1]=c[1]; od[4*i+2]=c[2]; od[4*i+3]=a; }
+    sx.putImageData(id,0,0);
+    const k=Math.min(4,2048/Math.max(w,h)); big.width=Math.round(w*k); big.height=Math.round(h*k); const bx=big.getContext('2d'); bx.imageSmoothingEnabled=false; bx.drawImage(sm,0,0,big.width,big.height);
+    bx.textAlign='center'; bx.textBaseline='middle'; bx.lineJoin='round';
+    for(const lab of labels){ if(sel>=0&&lab.L!==sel) continue; const fs=Math.max(10,Math.min(64,lab.r*Math.max(big.width,big.height)*1.3)); bx.font=`700 ${fs}px Inter,system-ui,sans-serif`;
+      bx.lineWidth=Math.max(2,fs*.18); bx.strokeStyle='#fff'; bx.fillStyle='#111'; const X=lab.x*big.width, Y=lab.y*big.height; bx.strokeText(String(lab.L+1),X,Y); bx.fillText(String(lab.L+1),X,Y); } }
+  const p2=v=>2**Math.round(Math.log2(Math.max(2,v))); const pc=document.createElement('canvas'); pc.width=Math.min(2048,p2(big.width)); pc.height=Math.min(2048,p2(big.height)); const px=pc.getContext('2d'); px.imageSmoothingEnabled=true; px.drawImage(big,0,0,pc.width,pc.height);
+  gl.bindTexture(gl.TEXTURE_2D,T.paint); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,pc); gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); }
+const quality=e=>e<5?'rất giống':e<10?'khá giống':e<18?'tương đối':'chỉ gần đúng';
+function palAmount(frac){ const t=sizeText(); if(!t.w) return ''; const m2=t.w*t.h/1e4*frac; return ` · ${m2<.1?m2.toFixed(2):m2.toFixed(1)} m² ≈ ${Math.max(5,Math.round(m2*200/5)*5)} ml`; }
+function updPalUI(){
+  const L=$('palList'); if(!S.pal.length){ L.innerHTML=''; $('palHint').textContent=S.img?'Chưa tách được màu (ảnh trống hoặc toàn màu nền).':'Chọn ảnh ở bước 1 trước.'; return; }
+  L.innerHTML=S.pal.map((p,i)=>`<button class="pal${S.paintSel===i?' sel':''}" data-i="${i}"><span class="sws"><span class="sw" style="background:${p.hex}">${p.num}</span><span class="mx" style="background:${rgb2hex(p.recipe.mix)}" title="Màu pha được"></span></span>
+    <span class="rc">${esc(p.recipe.txt)}<small>${quality(p.recipe.e)}${p.sug?` · mua thêm <b>${esc(p.sug.name)}</b> để pha giống hơn`:''}</small></span><span class="pc">${Math.round(p.frac*100)}%${palAmount(p.frac)}</span></button>`).join('');
+  L.querySelectorAll('.pal').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; S.paintSel=S.paintSel===i?-1:i; renderPaintTex(); updPalUI(); save(); });
+  $('btnPalAll').hidden=S.paintSel<0;
+  $('palHint').innerHTML='Ô vuông có số = màu trong ảnh; ô nhỏ bên cạnh = màu pha được theo công thức. Số là <b>phần</b> (vd “3 Trắng + 1 Đỏ” = 3 thìa trắng, 1 thìa đỏ). Pha thử ít trước, quẹt lên giấy so với màn hình rồi chỉnh thêm.'+(sizeText().w?' Lượng sơn ước tính cho 2 lớp.':''); }
+function renderPaintSet(){ const P=paintsNow(); $('paintSet').innerHTML=P.map((p,i)=>`<button class="pchip${p.on?'':' off'}" data-i="${i}"><i style="background:${p.c}"></i>${esc(p.n)}</button>`).join('');
+  $('paintSet').querySelectorAll('.pchip').forEach(b=>b.onclick=()=>{ const p=P[+b.dataset.i]; p.on=!p.on; if(!P.some(q=>q.on)) p.on=true; renderPaintSet(); save(); if(S.style==='paint') paintSoon(50); }); }
+$('btnAddPaint').onclick=()=>{ const n=$('newPaintName').value.trim()||'Màu riêng', c=$('newPaintCol').value; paintsNow().push({n,c,on:true}); $('newPaintName').value=''; renderPaintSet(); save(); if(S.style==='paint') paintSoon(50); toast('Đã thêm màu sơn “'+n+'”.'); };
+$('btnPalAll').onclick=()=>{ S.paintSel=-1; renderPaintTex(); updPalUI(); save(); };
+$('chkPaintFill').onchange=e=>{ S.paintFill=e.target.checked; renderPaintTex(); save(); };
+$('chkPaintBg').onchange=e=>{ S.paintBg=e.target.checked; paintSoon(0); save(); };
+$('lineCol').oninput=e=>{ S.line=e.target.value; edgeSoon(); if(S.palImg) renderPaintTex(); save(); };
 $('chkGrid').onchange=e=>{ S.grid=e.target.checked; save(); };
 $('chkBlink').onchange=e=>{ S.blink=e.target.checked; save(); };
 $('btnShow').onclick=()=>{ S.show=!S.show; syncUI(); save(); };
@@ -852,11 +1000,11 @@ const say=(el,t)=>{ if(el.textContent!==t) el.textContent=t; };
 function updSteps(){
   document.querySelectorAll('[data-for]').forEach(el=>{ el.hidden=!el.dataset.for.split(' ').includes(S.surface); });
   const sf=document.querySelector(`input[name=surface][value=${S.surface}]`); if(sf) sf.checked=true;
-  $('tolRow').hidden=!(S.surface==='object'||S.clipMode==='obj'); $('edgeRow').hidden=S.style!=='edge'; $('gridRow').hidden=!S.grid;
+  $('tolRow').hidden=!(S.surface==='object'||S.clipMode==='obj'); $('edgeRow').hidden=S.style!=='edge'; $('paintRow').hidden=S.style!=='paint'; $('gridRow').hidden=!S.grid;
   say($('projNow'),PJ.cur?PJ.cur.name:'—');
   say($('st1'),[S.src?'camera bật':'chưa bật camera',S.img?'có ảnh':'chưa có ảnh'].join(' · '));
   say($('st2'),({plane:'tường phẳng',object:'vật cắt sẵn',curved:'bề mặt cong'})[S.surface]+(S.img&&S.vw?' · '+sizeText().txt:''));
-  say($('st3'),(S.style==='edge'?'nét viền':'ảnh màu')+` · ${Math.round(S.opa*100)}%`+(S.grid?' · lưới ô':'')+(S.show?'':' · đang ẩn'));
+  say($('st3'),(S.style==='paint'?`tô màu theo số (${S.pal.length} màu)`:S.style==='edge'?'nét viền':'ảnh màu')+` · ${Math.round(S.opa*100)}%`+(S.grid?' · lưới ô':'')+(S.show?'':' · đang ẩn'));
   say($('st4'),({dim:'tay: mẫu mờ',hide:'tay: ẩn mẫu',off:'bỏ qua che'})[S.occStyle]+(S.diffOn?' · so nền':''));
   say($('st5'),NET.peer?(NET.conns.size?NET.conns.size+' máy đang xem':'đang phát, chờ quét'):'chưa phát');
   let n=0, t='';
@@ -1097,8 +1245,8 @@ function hud(){ if(performance.now()-stepT>500){ stepT=performance.now(); updSte
 
 /* Lưu / khôi phục */
 /* ================= Dự án (IndexedDB): mỗi dự án = ảnh + khung + lưới + vùng khoanh + cài đặt ================= */
-const GK=['handles','drag','snap','kbps','code','sig','turnUrl','turnUser','turnPass'];   // cài đặt chung của máy
-const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol','occStyle','surface'];
+const GK=['handles','drag','snap','kbps','code','sig','turnUrl','turnUser','turnPass','paints'];   // cài đặt chung của máy
+const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol','occStyle','surface','paintK','paintSimp','paintFill','paintBg','paintSel'];
 const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
 const pick=(o,ks)=>{ const r={}; for(const k of ks) r[k]=clone(o[k]); return r; };
 S.mesh=meshGrid(S.meshN); const DEF=pick(S,PK);
@@ -1196,11 +1344,12 @@ function updShare(){ const b=$('btnShare'); b.textContent=NET.peer?'Dừng phát
 function outStream(){ if(!NET.stream){ NET.stream=cvs.captureStream(30); for(const t of NET.stream.getVideoTracks()){ try{ t.contentHint='detail'; }catch(e){} } } return NET.stream; }
 function tune(call){ const pc=call?.peerConnection; if(!pc) return; for(const sd of pc.getSenders()){ if(sd.track?.kind!=='video') continue; const p=sd.getParameters(); if(!p.encodings||!p.encodings.length) p.encodings=[{}]; p.encodings[0].maxBitrate=S.kbps*1e6; sd.setParameters(p).catch(()=>{}); } }
 function applyBitrate(){ for(const e of NET.conns.values()) tune(e.call); }
-const stateMsg=()=>({t:'state',show:S.show,opa:S.opa,style:S.style,grid:S.grid,blink:S.blink});
+const stateMsg=()=>({t:'state',show:S.show,opa:S.opa,style:S.style,grid:S.grid,blink:S.blink,sel:S.paintSel,pal:S.style==='paint'?S.pal.map(p=>({num:p.num,hex:p.hex,txt:p.recipe.txt,mix:rgb2hex(p.recipe.mix),pct:Math.round(p.frac*100)})):[]});
 function sendState(c){ try{ if(c.open) c.send(stateMsg()); }catch(e){} }
 function broadcast(){ for(const e of NET.conns.values()) sendState(e.conn); }
 function onCmd(d){ if(!d||d.t!=='cmd') return; const k=d.k;
-  if(k==='show') S.show=!S.show; else if(k==='opa') S.opa=Math.max(.05,Math.min(1,S.opa+(+d.v||0))); else if(k==='style') S.style=S.style==='edge'?'img':'edge'; else if(k==='grid') S.grid=!S.grid; else if(k==='blink') S.blink=!S.blink; else return;
+  if(k==='show') S.show=!S.show; else if(k==='opa') S.opa=Math.max(.05,Math.min(1,S.opa+(+d.v||0))); else if(k==='style'){ S.style=S.style==='img'?'edge':S.style==='edge'?'paint':'img'; if(S.style==='paint') paintSoon(0); }
+  else if(k==='psel'){ const v=+d.v; S.paintSel=(v===S.paintSel||!(v>=0&&v<S.pal.length))?-1:v; renderPaintTex(); updPalUI(); } else if(k==='grid') S.grid=!S.grid; else if(k==='blink') S.blink=!S.blink; else return;
   syncUI(); save(); broadcast(); }
 $('btnShare').onclick=startShare;
 $('btnNewCode').onclick=()=>{ S.code=rcode(); save(); if(NET.peer){ stopShare(); startShare(); } };
@@ -1230,7 +1379,12 @@ function startViewer(code){
   const send=(k,v)=>{ if(conn?.open) conn.send({t:'cmd',k,v}); else say('Chưa kết nối với máy quay','bad'); };
   $('vShow').onclick=()=>send('show'); $('vOpaM').onclick=()=>send('opa',-.15); $('vOpaP').onclick=()=>send('opa',.15);
   $('vStyle').onclick=()=>send('style'); $('vGrid').onclick=()=>send('grid'); $('vBlink').onclick=()=>send('blink');
-  function vState(d){ $('vShow').textContent=d.show?'Ẩn mẫu':'Hiện mẫu'; $('vShow').classList.toggle('on',!d.show); $('vStyle').textContent=d.style==='edge'?'Ảnh màu':'Nét viền';
+  $('vPalBtn').onclick=()=>{ $('vPal').hidden=!$('vPal').hidden; };
+  function vState(d){ $('vShow').textContent=d.show?'Ẩn mẫu':'Hiện mẫu'; $('vShow').classList.toggle('on',!d.show); $('vStyle').textContent=d.style==='img'?'Nét viền':d.style==='edge'?'Tô màu':'Ảnh màu';
+    const pal=Array.isArray(d.pal)?d.pal:[]; $('vPalBtn').hidden=!pal.length; if(!pal.length) $('vPal').hidden=true;
+    const ec=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])), hx=v=>/^#[0-9a-f]{6}$/i.test(v)?v:'#888';
+    $('vPal').innerHTML=pal.map((p,i)=>`<button class="pal${d.sel===i?' sel':''}" data-i="${i}"><span class="sws"><span class="sw" style="background:${hx(p.hex)}">${+p.num||i+1}</span><span class="mx" style="background:${hx(p.mix)}"></span></span><span class="rc">${ec(p.txt)}</span><span class="pc">${+p.pct||0}%</span></button>`).join('');
+    $('vPal').querySelectorAll('.pal').forEach(b=>b.onclick=()=>send('psel',+b.dataset.i));
     $('vGrid').classList.toggle('on',!!d.grid); $('vBlink').classList.toggle('on',!!d.blink); $('vOpaM').textContent='Mờ − ('+Math.round(d.opa*100)+'%)'; window.__vstate=d; }
   // thu phóng / kéo / xoay màn xem
   const Z={z:1,x:0,y:0,r:0}; const apply=()=>{ rv.style.transform=`translate(${Z.x}px,${Z.y}px) rotate(${Z.r}deg) scale(${Z.z})`; };
@@ -1239,23 +1393,23 @@ function startViewer(code){
   $('vReset').onclick=()=>{ Z.z=fitRot(); Z.x=Z.y=0; apply(); };
   $('vFull').onclick=()=>{ document.fullscreenElement?document.exitFullscreen():$('viewer').requestFullscreen?.().catch(()=>{}); };
   const P=new Map(); let g=null;
-  vs.addEventListener('pointerdown',e=>{ cap(vs,e); P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
+  vs.addEventListener('pointerdown',e=>{ if(e.target.closest('#vPal,button')) return; cap(vs,e); P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
     g = v.length===1?{x:e.clientX,y:e.clientY,ox:Z.x,oy:Z.y}:{d:Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]),z:Z.z,ox:Z.x,oy:Z.y,cx:(v[0][0]+v[1][0])/2,cy:(v[0][1]+v[1][1])/2}; });
   vs.addEventListener('pointermove',e=>{ if(!P.has(e.pointerId)||!g) return; P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
     if(v.length===1&&g.x!==undefined){ Z.x=g.ox+e.clientX-g.x; Z.y=g.oy+e.clientY-g.y; }
     else if(v.length===2&&g.d){ const d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); Z.z=Math.max(.3,Math.min(10,g.z*d/g.d)); Z.x=g.ox+(v[0][0]+v[1][0])/2-g.cx; Z.y=g.oy+(v[0][1]+v[1][1])/2-g.cy; } apply(); });
   const up=e=>{ P.delete(e.pointerId); const v=[...P.values()]; g=v.length===1?{x:v[0][0],y:v[0][1],ox:Z.x,oy:Z.y}:null; };
   vs.addEventListener('pointerup',up); vs.addEventListener('pointercancel',up);
-  vs.addEventListener('wheel',e=>{ e.preventDefault(); Z.z=Math.max(.3,Math.min(10,Z.z*Math.exp(-e.deltaY*.0015))); apply(); },{passive:false});
-  vs.addEventListener('dblclick',()=>$('vReset').click());
+  vs.addEventListener('wheel',e=>{ if(e.target.closest('#vPal')) return; e.preventDefault(); Z.z=Math.max(.3,Math.min(10,Z.z*Math.exp(-e.deltaY*.0015))); apply(); },{passive:false});
+  vs.addEventListener('dblclick',e=>{ if(!e.target.closest('#vPal')) $('vReset').click(); });
   window.__viewer={Z,get conn(){return conn;},rv};
 }
 
 if(VIEW){ startViewer(VIEW); }
 else {
-  syncUI(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
+  paintsNow(); syncUI(); renderPaintSet(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
 }
-window.__app={getTrk:()=>trk,procW:()=>proc.width,procH:()=>proc.height,S,PJ,DB,sanitize,imgBox,setEdit,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
+window.__app={buildPaint,recipe,get pal(){return S.pal;},getTrk:()=>trk,procW:()=>proc.width,procH:()=>proc.height,S,PJ,DB,sanitize,imgBox,setEdit,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
 
 }
 </script>

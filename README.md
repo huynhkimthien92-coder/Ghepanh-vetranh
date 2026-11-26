@@ -104,7 +104,20 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 - *Chất lượng* 3–6 Mb là đủ cùng Wi-Fi. Mạng yếu thì giảm xuống.
 - Hai máy khác mạng (4G ↔ Wi-Fi) đa số vẫn nối được. Nếu báo lỗi hoặc không có hình, vào **Nâng cao** thêm TURN server (ví dụ tài khoản miễn phí của metered.ca hoặc tự chạy coturn), hoặc tự chạy máy chủ kết nối: `npx peerjs --port 9000` (phải có https/wss nếu app chạy trên GitHub Pages).
 
-## 4. Vì sao không bị mất và không nhận nhầm khi có người/vật đi ngang
+## 4. Tô màu sau khi vẽ xong nét
+
+Bước 3 → chọn **Tô màu theo số**.
+- App gộp màu của ảnh mẫu thành ít mảng màu (chỉnh **Số màu**, mặc định 8) và đánh số từng mảng ngay trên tường. **Độ đơn giản** cao thì mảng to, dễ tô; thấp thì giống ảnh hơn. Mắt, mũi và các chi tiết nhỏ vẫn được giữ.
+- **Số nhỏ = màu sáng → tô trước**, màu tối và chi tiết tô sau, giống thứ tự thợ vẽ hay làm.
+- Bấm vào một màu trong danh sách: **chỉ các mảng của màu đó sáng lên** để tô cho khỏi nhầm. Bấm lại (hoặc *Hiện tất cả màu*) để xem hết.
+- Mỗi màu có **công thức pha** từ đúng những màu sơn bạn đang có, tính theo kiểu trộn sơn thật. Ví dụ “4 Trắng + 1 Đỏ” nghĩa là 4 thìa trắng, 1 thìa đỏ; “chút” là một ít. Ô vuông có số là màu trong ảnh, ô nhỏ bên cạnh là màu pha ra theo công thức, kèm mức *rất giống / khá giống / tương đối / chỉ gần đúng*.
+- Pha thử một ít trước, quẹt lên giấy, đặt cạnh điện thoại để so rồi chỉnh thêm. Không cần giống 100%.
+- **Màu sơn tôi đang có**: bật/tắt các màu bạn có (mặc định Trắng, Đen, Đỏ, Vàng chanh, Xanh dương) hoặc thêm màu riêng. Màu nào khó pha từ bộ hiện có thì app gợi ý **nên mua thêm màu gì** (vd xanh lá, tím rất khó pha đẹp từ màu cơ bản).
+- Nếu đã nhập kích thước thật (bước 2), mỗi màu có thêm **diện tích và lượng sơn ước tính** (2 lớp).
+- Mặc định bỏ qua màu nền của ảnh (nền trắng), để giữ nguyên màu tường. Tắt *Bỏ qua màu nền* nếu muốn tô cả nền.
+- Trên **điện thoại thứ hai**: nút **Bảng màu** hiện danh sách màu + công thức; chạm vào màu nào thì máy quay chỉ hiện các mảng của màu đó.
+
+## 4b. Vì sao không bị mất và không nhận nhầm khi có người/vật đi ngang
 
 **a) Hiện người/vật đè lên ảnh (che khuất đúng thứ tự trước–sau)**, dùng hai lớp và lấy kết quả nào phát hiện được:
 - *AI nhận diện người* (MediaPipe, chạy ngay trên máy): người đi qua sẽ hiện trước ảnh. Chọn mô hình “Người + vật phổ biến” nếu cần thêm xe, ghế, thú cưng…
@@ -135,6 +148,8 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 | Tự khớp khi tấm xốp bị lật ngang so với bản vẽ | tự nhận ra và lật ảnh, viền lệch ≈ 2 px |
 | Tự khớp khi tấm xốp cắt méo (không giống hệt bản vẽ) | tự uốn lưới, viền lệch còn ≈ 1,4 px (trước khi uốn 4,2 px) |
 | Camera tối đi 40% + rung 1 px + tay thò vào | bản cũ chỉ còn 15% nét mẫu; bản mới giữ 100% nét ở chỗ không che, ẩn đúng 99% trên tay |
+| Tô màu theo số (ảnh hoạt hình con nai, 8 màu) | 7 màu, giữ được mũi đỏ và mắt; tạo trong 0,27 s; công thức: hồng = 4 Trắng + 1 Đỏ, kem = 16 Trắng + chút Đỏ + chút Vàng, xám = Trắng + Đen |
+| Chọn màu từ điện thoại thứ hai | máy quay chuyển ngay sang chỉ hiện mảng màu đó |
 | Dự án: tạo mới, quay lại, tải lại trang, xuất/nhập file | khung, ảnh, cài đặt khôi phục đúng 100% |
 | Lưới nắn: bật lưới phẳng / kéo điểm giữa | phẳng thì giống hệt khi tắt; kéo điểm thì ảnh uốn theo đúng điểm |
 | Khoanh vùng / chạm chọn tấm bảng | ngoài vùng hiện hình camera; chọn vật đúng tấm bảng (25% khung), chừa phần người đứng chắn |
