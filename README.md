@@ -38,7 +38,8 @@ Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, v
 
 1. **Bật camera** (hoặc **Mở video thử** để test bằng một file video).
 2. **Chọn ảnh** (hoặc kéo thả ảnh vào khung). PNG nền trong suốt giữ nguyên độ trong.
-3. **Đặt khung vùng**, có 3 cách:
+3. **Đặt khung vùng**, có 4 cách:
+   - **Tự khớp vào vật** (dùng khi vật đã có sẵn hình dáng giống ảnh mẫu: tấm xốp cắt hình, tượng, mảng tường cắt sẵn…): bấm nút rồi **chạm vào vật**. App tách hình dáng vật theo màu và lấy đường viền ngoài của ảnh mẫu (nét vẽ trên nền trắng được tự nối kín; PNG trong suốt thì dùng phần không trong suốt). Sau đó app tự xoay, thu phóng, nắn phối cảnh, tự **lật ngang** nếu vật bị lật, và **uốn lưới** nếu vật cắt hơi méo, để hai đường viền trùng nhau. Vật tách thiếu hoặc lan ra nền thì chỉnh **Độ rộng màu** (mục khoanh vùng) rồi bấm lại.
    - **Tự dò khung**: app tìm hình chữ nhật có thật trong ảnh camera (bảng, khung tranh, cửa, hoặc viền băng keo bạn dán quanh vùng cần vẽ). Có nhiều khung thì bấm lại để chuyển sang khung khác.
    - **Kéo 4 chấm tròn** bằng tay. Khi thả, góc tự **hút vào góc thật gần nhất** (dấu băng keo, góc bảng), tắt được bằng ô “Hút góc…”.
    - **Đặt lại vùng** để về khung mặc định.
@@ -112,6 +113,9 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 | Máy quay tải lại trang | giữ nguyên mã, máy xem tự nối lại sau ~1,4 s |
 | Tự dò khung (tấm bảng 280×200 trên tường nhiều hoạ tiết) | tìm đúng, lệch 4 px; tỉ lệ đo 1,39 (thật 1,40) |
 | Hút góc khi thả lệch ~15 px | về đúng góc, còn lệch 1,5 px |
+| Tự khớp vào vật: tấm xốp trên sàn gạch hoa, xoay 25° + nhìn xiên | viền lệch trung bình ≈ 2 px, chạy 0,4 s |
+| Tự khớp khi tấm xốp bị lật ngang so với bản vẽ | tự nhận ra và lật ảnh, viền lệch ≈ 2 px |
+| Tự khớp khi tấm xốp cắt méo (không giống hệt bản vẽ) | tự uốn lưới, viền lệch còn ≈ 1,4 px (trước khi uốn 4,2 px) |
 | Dự án: tạo mới, quay lại, tải lại trang, xuất/nhập file | khung, ảnh, cài đặt khôi phục đúng 100% |
 | Lưới nắn: bật lưới phẳng / kéo điểm giữa | phẳng thì giống hệt khi tắt; kéo điểm thì ảnh uốn theo đúng điểm |
 | Khoanh vùng / chạm chọn tấm bảng | ngoài vùng hiện hình camera; chọn vật đúng tấm bảng (25% khung), chừa phần người đứng chắn |
@@ -124,6 +128,7 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 - Vật được đặt **cố định lâu** trước vùng sẽ tiếp tục được coi là vật che, bấm “Chụp nền trống” lại nếu muốn ảnh phủ lên nó.
 - Máy yếu: app tự giãn nhịp chạy AI (HUD góc trái hiện thời gian xử lý).
 - Lưới nắn cong là để uốn ảnh theo bề mặt **nhìn từ camera**: hình vẽ ra sẽ đúng khi đứng ở vị trí camera nhìn vào, giống máy chiếu. Với tượng 3D, mặt nào camera không thấy thì cần đặt camera ở góc khác và làm thêm một dự án riêng cho góc đó (dùng **Nhân bản**).
+- Tự khớp so sánh **đường viền ngoài**, nên ảnh mẫu cần có viền rõ (nét vẽ khép kín hoặc PNG nền trong suốt). Ảnh chụp kín cả khung, không có nền trắng, thì app chỉ khớp được theo hình chữ nhật của ảnh.
 - Chạm chọn vật tách theo màu nên hợp nhất với vật **một màu** (tượng thạch cao, mảng tường trơn). Vật nhiều hoa văn thì dùng khoanh tay.
 - Tự dò khung / hút góc cần tải OpenCV (~10 MB) ở lần dùng đầu. Tường trơn không có mốc thì không có gì để dò: dán 4 dấu băng keo ở 4 góc vùng cần vẽ là dò và hút góc rất chuẩn.
 - Tỉ lệ thật tự tính chính xác nhất khi vùng là hình chữ nhật thật (đánh dấu bằng băng keo vuông góc) và camera nhìn xiên theo cả 2 chiều. Nếu camera chỉ nghiêng 1 chiều, app dùng tiêu cự mặc định nên sai lệch khoảng vài %. Cần chuẩn tuyệt đối thì nhập kích thước.

@@ -133,6 +133,8 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
       <div class="hint">Kéo 4 chấm tròn khớp 4 góc vùng thật (tường, bảng, sàn…). Kéo bên trong vùng để dời, lăn chuột / chụm 2 ngón để thu phóng.</div>
       <div class="row"><span class="seg"><label><input type="radio" name="drag" value="img" checked>Kéo: dời ảnh</label><label><input type="radio" name="drag" value="quad">dời cả vùng</label></span></div>
       <div class="row"><button class="pri" id="btnDetect">Tự dò khung</button><button id="btnFitImg">Khớp khung theo tỉ lệ ảnh</button><button id="btnResetQuad">Đặt lại vùng</button></div>
+      <div class="row"><button class="pri" id="btnAutoFit">Tự khớp vào vật</button></div>
+      <div class="hint">“Tự khớp vào vật”: bấm rồi chạm vào vật (tấm xốp, tượng, mảng tường đã cắt hình…). App tách hình dáng vật, so với đường viền ngoài của ảnh mẫu rồi tự xoay, thu phóng, nắn phối cảnh (và uốn lưới nếu cần) cho hai viền trùng nhau.</div>
       <div class="hint">“Tự dò khung” tìm hình chữ nhật có thật trong ảnh camera (bảng, khung tranh, cửa, viền băng keo dán trên tường). Bấm lại để chuyển sang khung khác.</div>
       <label class="ck"><input type="checkbox" id="chkSnap" checked>Hút góc vào góc thật khi thả tay cầm</label>
       <div class="row"><select id="aspMode" aria-label="Cách tính tỉ lệ vùng"><option value="auto">Tỉ lệ thật: tự tính theo phối cảnh</option><option value="real">Tỉ lệ thật: nhập kích thước vùng</option><option value="screen">Tỉ lệ theo hình trên màn (cũ)</option></select></div>
@@ -631,7 +633,7 @@ hs.forEach(el=>el.addEventListener('pointerup',()=>{ const i=drag?.i; drag=null;
 stage.addEventListener('pointerdown',e=>{ const t=e.target;
   if(t.classList.contains('mh')||t.classList.contains('ph')){ e.preventDefault(); stage.setPointerCapture(e.pointerId); drag={type:t.classList.contains('mh')?'mesh':'polypt',i:+t.dataset.i,pid:e.pointerId}; return; }
   if(S.disp&&S.polyEdit&&!t.classList.contains('h')){ S.poly.push(toRef(norm(e))); buildClip(); updClipUI(); save(); return; }
-  if(S.disp&&S.pick&&!t.classList.contains('h')){ const add=S.pick==='add'; S.pick=false; stage.classList.remove('picking'); pickObject(norm(e),add); return; }
+  if(S.disp&&S.pick&&!t.classList.contains('h')){ const mode=S.pick; S.pick=false; stage.classList.remove('picking'); if(mode==='fit') autoFitAt(norm(e)); else pickObject(norm(e),mode==='add'); return; }
   if(!S.disp||t.classList.contains('h')||t.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); stage.setPointerCapture(e.pointerId);
   if(ptrs.size===1) drag={type:'pan',last:norm(e)}; else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; drag={type:'pinch',d:Math.hypot(a[0]-b[0],a[1]-b[1]),ang:Math.atan2(b[1]-a[1],b[0]-a[0]),s:S.scale,r:S.rot}; } });
 stage.addEventListener('pointermove',e=>{ if(!drag||(drag.type!=='mesh'&&drag.type!=='polypt')||e.pointerId!==drag.pid) return; const r=toRef(norm(e));
@@ -692,7 +694,8 @@ $('btnPolyEdit').onclick=()=>{ S.polyEdit=!S.polyEdit; if(S.polyEdit) toast('Ch�
 $('btnPolyUndo').onclick=()=>{ S.poly.pop(); buildClip(); updClipUI(); save(); };
 $('btnPolyClear').onclick=()=>{ S.poly=[]; buildClip(); updClipUI(); save(); };
 const startPick=mode=>{ if(!S.vw) return toast('Chưa có nguồn hình.'); S.pick=mode; stage.classList.add('picking'); if(!cv) loadCV().catch(()=>{}); toast('Chạm vào vật trên khung camera.'); };
-$('btnObjPick').onclick=()=>startPick('new'); $('btnObjAdd').onclick=()=>startPick('add');
+$('btnObjPick').onclick=()=>startPick('new');
+$('btnAutoFit').onclick=()=>{ if(!S.img) return toast('Chọn ảnh mẫu trước.'); startPick('fit'); toast('Chạm vào vật cần khớp ảnh lên.'); }; $('btnObjAdd').onclick=()=>startPick('add');
 $('btnObjClear').onclick=()=>{ S.objMask=null; S.objImg=null; buildClip(); updClipUI(); save(); };
 $('objTol').oninput=e=>{ S.objTol=+e.target.value; $('oObjTol').textContent=S.objTol; save(); };
 function updClipUI(){ $('polyRow').hidden=S.clipMode!=='poly'; $('objRow').hidden=S.clipMode!=='obj'; $('meshRow').hidden=!S.meshOn; $('meshHint').hidden=!S.meshOn;
@@ -702,6 +705,9 @@ function updClipUI(){ $('polyRow').hidden=S.clipMode!=='poly'; $('objRow').hidde
 
 /* ===== Chạm chọn vật: loang theo màu từ điểm chạm (OpenCV floodFill), lấp lỗ, cộng dồn được ===== */
 async function pickObject(pn,add){
+  const r=await segObject(pn,add); if(!r) return; S.objImg=r.c; S.objMask=r.c.toDataURL('image/png'); if(S.clipMode!=='obj'){ S.clipMode='obj'; syncUI(); }
+  buildClip(); updClipUI(); save(); toast(`Đã chọn vật (${r.pct}% khung hình).`); }
+async function segObject(pn,add){
   try{ if(!cv){ toast('Đang tải bộ xử lý ảnh…'); await loadCV(); }
     const pw=proc.width, ph=proc.height; pctx.drawImage(vid,0,0,pw,ph);
     const src=cv.matFromImageData(pctx.getImageData(0,0,pw,ph)), rgb=new cv.Mat(); cv.cvtColor(src,rgb,cv.COLOR_RGBA2RGB); src.delete(); cv.medianBlur(rgb,rgb,5);
@@ -711,16 +717,86 @@ async function pickObject(pn,add){
     const k=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(7,7)); cv.morphologyEx(m,m,cv.MORPH_CLOSE,k); k.delete();
     const cs=new cv.MatVector(), hi=new cv.Mat(); cv.findContours(m,cs,hi,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE); cv.drawContours(m,cs,-1,new cv.Scalar(255),-1); cs.delete(); hi.delete(); // lấp lỗ
     const md=m.data; let cnt=0; for(let i=0;i<md.length;i++) if(md[i]) cnt++;
-    if(cnt<pw*ph*.002){ m.delete(); return toast('Vùng chọn quá nhỏ — tăng “Độ rộng màu” rồi chạm lại.'); }
+    if(cnt<pw*ph*.002){ m.delete(); toast('Vùng chọn quá nhỏ — tăng “Độ rộng màu” rồi chạm lại.'); return null; }
     // đổi sang toạ độ tham chiếu (khi đang bám camera di chuyển) + cộng với vùng cũ nếu “Chạm thêm”
     const c=document.createElement('canvas'); c.width=pw; c.height=ph; const x=c.getContext('2d'), id=x.createImageData(pw,ph), od=id.data;
     let prev=null; if(add&&S.objImg){ x.drawImage(S.objImg,0,0,pw,ph); prev=x.getImageData(0,0,pw,ph).data; }
     const R2C=S.R2C, ident=R2C.every((v,i)=>Math.abs(v-I3[i])<1e-9);
     for(let y=0;y<ph;y++) for(let xx=0;xx<pw;xx++){ let sx=xx, sy=y; if(!ident){ const q=ap(R2C,(xx+.5)/pw,(y+.5)/ph); sx=Math.floor(q[0]*pw); sy=Math.floor(q[1]*ph); }
       let v=(sx>=0&&sy>=0&&sx<pw&&sy<ph&&md[sy*pw+sx])?255:0; const i=y*pw+xx; if(prev&&prev[4*i]>v) v=prev[4*i]; od[4*i]=od[4*i+1]=od[4*i+2]=v; od[4*i+3]=255; }
-    m.delete(); x.putImageData(id,0,0); S.objImg=c; S.objMask=c.toDataURL('image/png'); if(S.clipMode!=='obj'){ S.clipMode='obj'; syncUI(); }
-    buildClip(); updClipUI(); save(); toast(`Đã chọn vật (${Math.round(cnt/(pw*ph)*100)}% khung hình).`);
-  }catch(e){ console.error(e); toast('Không tách được vật: '+e.message); } }
+    m.delete(); x.putImageData(id,0,0); return {c,pct:Math.round(cnt/(pw*ph)*100)};
+  }catch(e){ console.error(e); toast('Không tách được vật: '+e.message); return null; } }
+
+/* ===== Tự khớp ảnh mẫu vào vật: viền ngoài ảnh ↔ viền vật (chamfer 2 chiều), tìm homography bằng Nelder-Mead, rồi uốn lưới nếu còn lệch ===== */
+function largestFill(m){ const cs=new cv.MatVector(), hi=new cv.Mat(); cv.findContours(m,cs,hi,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_NONE); let bi=-1, ba=0;
+  for(let i=0;i<cs.size();i++){ const a=cv.contourArea(cs.get(i)); if(a>ba){ ba=a; bi=i; } }
+  m.setTo(new cv.Scalar(0)); let pts=[]; if(bi>=0){ cv.drawContours(m,cs,bi,new cv.Scalar(255),-1); const d=cs.get(bi).data32S; for(let i=0;i<d.length;i+=2) pts.push([d[i],d[i+1]]); }
+  cs.delete(); hi.delete(); return {area:ba,pts}; }
+function imgSilhouette(){ // hình dáng ngoài của ảnh mẫu: kênh trong suốt, hoặc nét vẽ trên nền sáng được nối kín rồi lấp đầy
+  const sc=S.imgCanvas, k=Math.min(1,320/Math.max(sc.width,sc.height)), w=Math.max(8,Math.round(sc.width*k)), h=Math.max(8,Math.round(sc.height*k));
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(sc,0,0,w,h); const d=x.getImageData(0,0,w,h).data, n=w*h;
+  const m=new cv.Mat(h,w,cv.CV_8U), md=m.data; let tr=0; for(let i=0;i<n;i++) if(d[4*i+3]<128) tr++;
+  if(tr>n*.05){ for(let i=0;i<n;i++) md[i]=d[4*i+3]>=128?255:0; }
+  else { const L=i=>.299*d[4*i]+.587*d[4*i+1]+.114*d[4*i+2], bd=[]; for(let i=0;i<w;i++){ bd.push(L(i),L((h-1)*w+i)); } for(let j=0;j<h;j++){ bd.push(L(j*w),L(j*w+w-1)); } bd.sort((a,b)=>a-b); const bg=bd[bd.length>>1];
+    for(let i=0;i<n;i++){ const l=L(i), mx=Math.max(d[4*i],d[4*i+1],d[4*i+2]), mn=Math.min(d[4*i],d[4*i+1],d[4*i+2]); md[i]=(Math.abs(l-bg)>45||(mx-mn>70&&Math.abs(l-bg)>15))?255:0; }
+    const r=Math.max(2,Math.round(Math.max(w,h)*.025)), ke=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(2*r+1,2*r+1)); cv.morphologyEx(m,m,cv.MORPH_CLOSE,ke); ke.delete(); }
+  const L=largestFill(m); return {m,w,h,...L}; }
+function dtOf(m){ const e=cv.Mat.ones(m.rows,m.cols,cv.CV_8U); e.setTo(new cv.Scalar(255)); const cs=new cv.MatVector(), hi=new cv.Mat(); cv.findContours(m.clone(),cs,hi,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_NONE);
+  cv.drawContours(e,cs,-1,new cv.Scalar(0),1); cs.delete(); hi.delete(); const dt=new cv.Mat(); cv.distanceTransform(e,dt,cv.DIST_L2,3); e.delete(); const out={w:m.cols,h:m.rows,d:Float32Array.from(dt.data32F)}; dt.delete(); return out; }
+const dtAt=(D,x,y,T)=>{ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=D.w||yi>=D.h)?T:Math.min(T,D.d[yi*D.w+xi]); };
+const subs=(pts,n)=>{ const st=Math.max(1,pts.length/n), o=[]; for(let i=0;i<pts.length;i+=st) o.push(pts[Math.floor(i)]); return o; };
+function momentsOf(pts){ let cx=0,cy=0; for(const p of pts){ cx+=p[0]; cy+=p[1]; } cx/=pts.length; cy/=pts.length; let a=0,b=0,c=0; for(const p of pts){ const dx=p[0]-cx, dy=p[1]-cy; a+=dx*dx; b+=dx*dy; c+=dy*dy; } return {cx,cy,th:.5*Math.atan2(2*b,a-c)}; }
+function nelderMead(f,x0,step,iters){ const n=x0.length; let P=[x0.slice()]; for(let i=0;i<n;i++){ const x=x0.slice(); x[i]+=step[i]; P.push(x); } let F=P.map(f);
+  for(let it=0;it<iters;it++){ const idx=[...P.keys()].sort((a,b)=>F[a]-F[b]); P=idx.map(i=>P[i]); F=idx.map(i=>F[i]);
+    const c=new Array(n).fill(0); for(let i=0;i<n;i++) for(let j=0;j<n;j++) c[j]+=P[i][j]/n; const w=P[n], xr=c.map((v,j)=>v+(v-w[j])), fr=f(xr);
+    if(fr<F[0]){ const xe=c.map((v,j)=>v+2*(v-w[j])), fe=f(xe); if(fe<fr){ P[n]=xe; F[n]=fe; } else { P[n]=xr; F[n]=fr; } }
+    else if(fr<F[n-1]){ P[n]=xr; F[n]=fr; }
+    else { const xc=c.map((v,j)=>v+.5*(w[j]-v)), fc=f(xc); if(fc<F[n]){ P[n]=xc; F[n]=fc; } else { for(let i=1;i<=n;i++){ P[i]=P[i].map((v,j)=>P[0][j]+.5*(v-P[0][j])); F[i]=f(P[i]); } } } }
+  let b=0; for(let i=1;i<=n;i++) if(F[i]<F[b]) b=i; return {x:P[b],f:F[b]}; }
+const isConvexQ=q=>{ let sg=0; for(let i=0;i<4;i++){ const a=q[i],b=q[(i+1)%4],c=q[(i+2)%4], cr=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]); if(Math.abs(cr)<1e-6) return false; const g=Math.sign(cr); if(!sg) sg=g; else if(g!==sg) return false; } return true; };
+async function autoFitAt(pn){
+  setPill('Đang tách vật và khớp ảnh…','warn'); await new Promise(r=>setTimeout(r,30));
+  const seg=await segObject(pn,false); if(!seg) return; S.objImg=seg.c; S.objMask=seg.c.toDataURL('image/png'); buildClip();
+  const pw=proc.width, ph=proc.height, M=Math.max(pw,ph);
+  try{
+    // mặt nạ vật (toạ độ tham chiếu, độ phân giải xử lý)
+    const x=seg.c.getContext('2d',{willReadFrequently:true}), od=x.getImageData(0,0,pw,ph).data, om=new cv.Mat(ph,pw,cv.CV_8U); for(let i=0;i<pw*ph;i++) om.data[i]=od[4*i]>127?255:0;
+    const O=largestFill(om), I=imgSilhouette(); if(O.pts.length<20||I.pts.length<20){ om.delete(); I.m.delete(); return toast('Không lấy được đường viền của vật hoặc của ảnh mẫu.'); }
+    const DO=dtOf(om), DI=dtOf(I.m); om.delete(); I.m.delete();
+    const oP=subs(O.pts,260), iP=subs(I.pts,260), w=I.w, h=I.h, mo=momentsOf(O.pts), mi=momentsOf(I.pts), sc0=Math.sqrt(O.area/Math.max(1,I.area));
+    let T=.08*M;
+    const cost=C=>{ const q=[[C[0],C[1]],[C[2],C[3]],[C[4],C[5]],[C[6],C[7]]]; if(!isConvexQ(q)) return 1e9; const Hm=sq2q(q); if(!Hm) return 1e9; const Hi=inv(Hm); if(!Hi) return 1e9;
+      let a=0; for(const p of iP){ const r=ap(Hm,p[0]/w,p[1]/h); a+=r[2]>0?dtAt(DO,r[0],r[1],T):T; }
+      const k=Math.sqrt(area(q)/(w*h)); let b=0; for(const p of oP){ const r=ap(Hi,p[0],p[1]); b+=r[2]>0?Math.min(T,dtAt(DI,r[0]*w,r[1]*h,T/k)*k):T; }
+      return a/iP.length+b/oP.length; };
+    const corners=[[0,0],[w,0],[w,h],[0,h]], cands=[];
+    for(const mir of [false,true]){ const thi=mir?-mi.th:mi.th, cix=mir?w-mi.cx:mi.cx; const set=new Set();
+      for(const base of [mo.th-thi,mo.th-thi+Math.PI,0,Math.PI/2,Math.PI,-Math.PI/2]){ const key=Math.round(((base%(2*Math.PI))+2*Math.PI)%(2*Math.PI)*20); if(set.has(key)) continue; set.add(key);
+        const cs=Math.cos(base)*sc0, sn=Math.sin(base)*sc0; const C=[]; for(const [px,py] of corners){ const qx=(mir?w-px:px)-cix, qy=py-mi.cy; C.push(mo.cx+cs*qx-sn*qy, mo.cy+sn*qx+cs*qy); } cands.push({C,mir,f:cost(C)}); } }
+    cands.sort((a,b)=>a.f-b.f);
+    let best=null; for(const c of cands.slice(0,3)){ T=.08*M; const st=new Array(8).fill(.03*M); let r=nelderMead(cost,c.C,st,700); T=.03*M; r=nelderMead(cost,r.x,st.map(v=>v/3),500); if(!best||r.f<best.f) best={...r,mir:c.mir}; }
+    T=.03*M; let fH=cost(best.x); const C=best.x, q=[[C[0],C[1]],[C[2],C[3]],[C[4],C[5]],[C[6],C[7]]];
+    // ---- uốn lưới cho ôm sát viền nếu vẫn còn lệch (ICP trên lưới 6×6) ----
+    const N=6, oldN=S.meshN, oldMesh=S.mesh; S.meshN=N; S.mesh=meshGrid(N); let used=false;
+    const Hq=sq2q(q), F=(u,v)=>{ const o=meshOff(u,v), r=ap(Hq,u+o[0],v+o[1]); return [r[0],r[1]]; };
+    const meshCost=()=>{ let a=0; for(const p of iP){ const r=F(p[0]/w,p[1]/h); a+=dtAt(DO,r[0],r[1],T); } return a/iP.length; };
+    const aH=meshCost();
+    if(aH>.0035*M){ const sig=.5/(N-1); let cur=aH;
+      for(let it=0;it<8;it++){ const acc=S.mesh.map(()=>[0,0,0]);
+        for(const p of iP){ const u=p[0]/w, v=p[1]/h, c0=F(u,v), dd=dtAt(DO,c0[0],c0[1],T); if(dd>=T||dd<.5) continue;
+          const gx=(dtAt(DO,c0[0]+1,c0[1],T)-dtAt(DO,c0[0]-1,c0[1],T))/2, gy=(dtAt(DO,c0[0],c0[1]+1,T)-dtAt(DO,c0[0],c0[1]-1,T))/2, gn=Math.hypot(gx,gy); if(gn<1e-3) continue;
+          const dc=[-dd*gx/gn,-dd*gy/gn], e=1e-3, fu=F(u+e,v), fv=F(u,v+e), J=[(fu[0]-c0[0])/e,(fv[0]-c0[0])/e,(fu[1]-c0[1])/e,(fv[1]-c0[1])/e], det=J[0]*J[3]-J[1]*J[2]; if(Math.abs(det)<1e-9) continue;
+          const du=(J[3]*dc[0]-J[1]*dc[1])/det, dv=(-J[2]*dc[0]+J[0]*dc[1])/det;
+          for(let k=0;k<N*N;k++){ const ki=k%N, kj=(k/N)|0; if((ki===0||ki===N-1)&&(kj===0||kj===N-1)) continue; const wt=Math.exp(-(((u-ki/(N-1))**2+(v-kj/(N-1))**2)/(2*sig*sig))); acc[k][0]+=wt*du; acc[k][1]+=wt*dv; acc[k][2]+=wt; } }
+        const prev=S.mesh.map(p=>p.slice()); S.mesh=S.mesh.map((p,k)=>[p[0]+.8*acc[k][0]/(acc[k][2]+.6),p[1]+.8*acc[k][1]/(acc[k][2]+.6)]);
+        const nc=meshCost(); if(nc<cur-.01){ cur=nc; used=true; } else { S.mesh=prev; break; } }
+      if(!(used&&cur<aH*.85)) used=false; }
+    if(!used){ S.meshN=oldN; S.mesh=oldMesh; S.meshOn=false; } else S.meshOn=true;
+    S.ref=q.map(p=>[p[0]/pw,p[1]/ph]); S.fit='stretch'; S.scale=1; S.rot=0; S.off=[0,0]; S.clip=true; filt.forEach(f=>f.reset()); S.bgReady=false; $('bgState').textContent='Chưa có nền';
+    syncUI(); save(); const err=(used?meshCost():aH)*(S.vw/pw);
+    window.__fit={f:fH,aH,used,mir:best.mir,err};
+    toast(`Đã khớp ảnh vào vật — viền lệch trung bình ≈ ${err.toFixed(1)} px`+(best.mir?' (ảnh được lật ngang cho khớp)':'')+(used?', đã uốn lưới cho ôm sát.':'.'));
+  }catch(e){ console.error(e); toast('Không khớp được: '+e.message); } }
 $('btnFitImg').onclick=fitQuadToImage;
 
 /* ===== Tự dò khung chữ nhật trong cảnh (OpenCV: Canny/ngưỡng thích nghi -> contour -> tứ giác lồi) ===== */
@@ -974,7 +1050,7 @@ if(VIEW){ startViewer(VIEW); }
 else {
   syncUI(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
 }
-window.__app={S,PJ,DB,openProject,pickObject,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
+window.__app={S,PJ,DB,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
 
 }
 </script>
