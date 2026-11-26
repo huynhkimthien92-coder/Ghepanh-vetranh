@@ -94,6 +94,32 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
 #meshPath{fill:none;stroke:#ffd166;stroke-width:1;opacity:.85;pointer-events:none}
 #clipPoly{fill:rgba(255,138,61,.08);stroke:#ff8a3d;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
 .stage.picking{cursor:crosshair}
+details.step{border-top:1px solid var(--line)}
+details.step>summary{list-style:none;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:center;padding:12px 0;margin:0;cursor:pointer;color:var(--ink);font-size:15px;min-height:56px}
+details.step>summary::-webkit-details-marker,details.proj>summary::-webkit-details-marker,details.more>summary::-webkit-details-marker{display:none}
+.n{width:28px;height:28px;border-radius:50%;background:#2c3230;display:grid;place-items:center;font-weight:700;font-size:13px}
+details.step[open] .n{background:var(--acc);color:#06140e}
+.t{font-weight:600;line-height:1.25}.t small{display:block;font-weight:400;color:var(--mute);font-size:12.5px;margin-top:2px}
+.st{display:block;font-size:12.5px;font-weight:400;color:var(--acc);margin-top:2px}
+details.step[open] .st,details.step:not([open]) .t small{display:none}
+.nosrc .ov,.nosrc .editbar{display:none}
+details.step .body{padding:0 0 14px 40px}
+details.more{margin:10px 0 4px;border:1px solid var(--line);border-radius:10px;padding:0 10px 4px}
+details.more>summary{list-style:none;min-height:42px;display:flex;align-items:center;justify-content:space-between;color:var(--mute);font-size:13px;margin:0;cursor:pointer}
+details.more>summary::after{content:'▾'}details.more[open]>summary::after{content:'▴'}
+details.proj{border:1px solid var(--line);border-radius:10px;padding:0 10px 6px;margin:8px 0 10px}
+details.proj>summary{list-style:none;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;color:var(--ink);font-size:14px;cursor:pointer}
+.mute{color:var(--mute);font-size:12.5px}
+.lbl{font-size:13px;font-weight:600;margin:12px 0 6px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.cards label{border:1px solid #3a413e;border-radius:10px;padding:8px 9px;font-size:12px;color:var(--mute);cursor:pointer;line-height:1.35}
+.cards label b{display:block;font-size:13.5px;color:var(--ink);margin-bottom:3px}
+.cards input{display:none}
+.cards label:has(input:checked){border-color:var(--acc);background:rgba(61,220,151,.1)}
+.next{background:#1f2e28;border:1px solid #2f4a3f;border-radius:10px;padding:9px 12px;font-size:13.5px;cursor:pointer}
+.next b{color:var(--acc)}
+.row .hint{margin:0;flex:1 1 140px}
+@media(max-width:420px){details.step .body{padding-left:0}.cards{grid-template-columns:1fr}}
 /* Điện thoại dọc: khung camera dính trên cùng, cài đặt cuộn bên dưới -> chỉnh tới đâu thấy tới đó */
 @media(max-width:900px) and (orientation:portrait){body{overflow:auto}.app{display:block;height:auto}
   .stage{position:sticky;top:0;z-index:5;height:46vh;height:46svh;box-shadow:0 6px 18px rgba(0,0,0,.45)}
@@ -109,10 +135,10 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
     <canvas id="gl" width="2" height="2"></canvas>
     <div class="ov" id="ov">
       <svg id="ovsvg"><polygon id="poly" points=""/><path id="meshPath" d=""/><polygon id="clipPoly" points=""/><polygon id="imgBoxPoly" points=""/><path id="rotLine" d=""/></svg>
-      <div class="bh" data-i="0"></div><div class="bh" data-i="1"></div><div class="bh" data-i="2"></div><div class="bh" data-i="3"></div><div class="rh" title="Xoay"></div><div class="tag" id="sizeTag"></div>
+      <div class="bh" data-i="0" hidden></div><div class="bh" data-i="1" hidden></div><div class="bh" data-i="2" hidden></div><div class="bh" data-i="3" hidden></div><div class="rh" title="Xoay" hidden></div><div class="tag" id="sizeTag" hidden></div>
       <div class="h" data-i="0">1</div><div class="h" data-i="1">2</div><div class="h" data-i="2">3</div><div class="h" data-i="3">4</div>
     </div>
-    <div class="empty" id="empty"><div><b>Chưa có nguồn hình</b>Bấm “Bật camera” hoặc “Mở video thử” ở bảng bên phải.</div></div>
+    <div class="empty" id="empty"><div><b>Chưa có hình camera</b>Bấm “Bật camera” ở bước 1.</div></div>
     <div class="hud" id="hud"></div>
     <div class="pill" id="pill" hidden></div>
     <div class="editbar" id="editBar" role="group" aria-label="Chế độ chỉnh"><button data-ed="img" class="on">Ảnh</button><button data-ed="plane">Mặt phẳng</button><button data-ed="mesh" id="edMesh" hidden>Lưới</button></div>
@@ -120,105 +146,159 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
 
   <aside class="panel">
     <h1>Ghép ảnh vào camera</h1>
-    <p>Ảnh được dán lên một vùng cố định trong khung hình, người/vật đi ngang sẽ hiện đè lên ảnh thay vì làm ảnh trôi.</p>
+    <p>Dán ảnh mẫu lên tường hoặc vật qua camera để tô vẽ theo. Làm lần lượt từng bước bên dưới, mỗi bước bấm vào để mở.</p>
+    <div class="next" id="nextStep" role="button" tabindex="0"></div>
 
-    <section class="g"><h2>Dự án</h2>
+    <details class="proj"><summary><span>Dự án: <b id="projNow">—</b></span><span class="mute">đổi / tạo mới ▾</span></summary>
+      <div class="hint">Mỗi dự án lưu riêng ảnh mẫu, vị trí, cách hiển thị và tự lưu khi chỉnh. Đổi qua lại không mất gì.</div>
       <div class="row"><select id="projSel" aria-label="Chọn dự án"></select></div>
       <div class="row"><input type="text" id="projName" placeholder="Tên dự án" aria-label="Tên dự án" autocomplete="off"></div>
       <div class="row"><button id="pjNew">Dự án mới</button><button id="pjDup">Nhân bản</button><button id="pjDel">Xoá</button></div>
+      <div class="hint"><b>Dự án mới</b>: vẽ hình khác, giữ nguyên dự án cũ. <b>Nhân bản</b>: cùng bức tường, muốn thử ảnh khác.</div>
       <div class="row"><button id="pjExport">Xuất file</button><label class="btn">Nhập file<input type="file" id="pjImport" accept=".json,application/json"></label></div>
-      <div class="hint">Mỗi dự án lưu riêng ảnh, khung, lưới nắn, vùng khoanh và mọi cài đặt; tự lưu khi chỉnh. Đổi qua lại không mất gì. “Nhân bản” = giữ khung &amp; cài đặt để thử ảnh khác trên cùng bức tường. “Xuất file” để mang dự án sang máy khác.</div>
-    </section>
+      <div class="hint">Xuất / nhập file để mang dự án sang máy khác hoặc cất dự phòng.</div>
+    </details>
 
-    <section class="g"><h2>1 · Nguồn hình</h2>
-      <div class="row"><button class="pri" id="btnCam">Bật camera</button>
-        <label class="btn">Mở video thử<input type="file" id="vidFile" accept="video/*"></label></div>
-      <div class="row"><select id="camSel" aria-label="Chọn camera"><option value="">Camera mặc định</option></select>
-        <button id="btnExpo" title="Khoá phơi sáng/cân bằng trắng để so sánh nền ổn định">Khoá sáng</button></div>
-    </section>
+    <details class="step" name="step" open>
+      <summary><span class="n">1</span><span class="t">Camera &amp; ảnh mẫu<small>Bắt đầu ở đây</small><span class="st" id="st1"></span></span></summary>
+      <div class="body">
+        <div class="row"><button class="pri" id="btnCam">Bật camera</button><select id="camSel" aria-label="Chọn camera"><option value="">Camera mặc định</option></select></div>
+        <div class="lbl">Ảnh muốn vẽ</div>
+        <div class="row"><label class="btn">Chọn / đổi ảnh…<input type="file" id="imgFile" accept="image/*"></label><img id="thumb" alt="Ảnh đã chọn"></div>
+        <div class="hint">Đổi ảnh chỉ thay ảnh, giữ nguyên vị trí đã đặt. Muốn giữ cả bản cũ thì bấm <b>Nhân bản</b> ở mục Dự án trước.</div>
+        <div class="lbl">Điện thoại quay đặt thế nào?</div>
+        <div class="row"><span class="seg"><label><input type="radio" name="mode" value="fixed" checked>Cố định (chân máy)</label><label><input type="radio" name="mode" value="move">Cầm tay</label></span></div>
+        <div class="row"><button id="btnLock" disabled>Khoá vùng &amp; bám theo</button></div>
+        <div id="stat" class="hint">Camera cố định: vùng đứng yên tuyệt đối, không thể trôi.</div>
+        <details class="more"><summary>Tuỳ chọn thêm</summary>
+          <div class="row"><label class="btn">Mở video thử<input type="file" id="vidFile" accept="video/*"></label></div>
+          <div class="hint">Dùng một file video thay cho camera để tập trước.</div>
+          <div class="row"><button id="btnExpo">Khoá sáng</button></div>
+          <div class="hint">Giữ độ sáng camera không tự đổi (chỉ một số máy Android hỗ trợ). App đã tự bù sáng nên ít khi cần.</div>
+        </details>
+      </div>
+    </details>
 
-    <section class="g"><h2>2 · Ảnh ghép</h2>
-      <div class="row"><label class="btn">Chọn / đổi ảnh…<input type="file" id="imgFile" accept="image/*"></label><img id="thumb" alt="Ảnh đã chọn"></div>
-      <div class="hint">Đổi ảnh chỉ thay ảnh của dự án đang mở, giữ nguyên khung và cài đặt. Muốn giữ cả bản cũ: bấm “Nhân bản” ở mục Dự án trước rồi mới đổi. PNG nền trong suốt được giữ độ trong; có thể kéo-thả ảnh vào khung camera.</div>
-    </section>
+    <details class="step" name="step">
+      <summary><span class="n">2</span><span class="t">Đặt ảnh lên bề mặt<small>Ảnh nằm ở đâu, to cỡ nào</small><span class="st" id="st2"></span></span></summary>
+      <div class="body">
+        <div class="lbl">Bạn vẽ lên gì?</div>
+        <div class="cards">
+          <label><input type="radio" name="surface" value="plane" checked><b>Tường phẳng</b>tường, bảng, sàn, vải căng</label>
+          <label><input type="radio" name="surface" value="object"><b>Vật cắt sẵn hình</b>tấm xốp, gỗ, tượng cùng hình với ảnh</label>
+          <label><input type="radio" name="surface" value="curved"><b>Bề mặt cong</b>cột, tường cong, góc nhà</label>
+        </div>
 
-    <section class="g"><h2>3 · Vùng đặt ảnh</h2>
-      <div class="hint">Thanh nhỏ dưới khung camera chọn đang chỉnh gì:<br>• <b>Ảnh</b>: kéo ô vuông ở góc ảnh để phóng to/thu nhỏ, nút tròn để xoay, kéo trong ảnh để dời. Ảnh luôn nằm đúng phối cảnh của tường.<br>• <b>Mặt phẳng</b>: kéo 4 chấm tròn khớp 4 góc một hình chữ nhật thật trên tường (khung cửa, viền băng keo…) để app biết phối cảnh; kéo bên trong để dời cả khung.<br>• <b>Lưới</b>: kéo chấm vàng uốn ảnh theo bề mặt cong (khi bật lưới nắn).</div>
-      <div class="row"><button class="pri" id="btnDetect">Tự dò khung</button><button id="btnFitImg">Khớp khung theo tỉ lệ ảnh</button><button id="btnResetQuad">Đặt lại vùng</button></div>
-      <div class="row"><button class="pri" id="btnAutoFit">Tự khớp vào vật</button></div>
-      <div class="hint">“Tự khớp vào vật”: bấm rồi chạm vào vật (tấm xốp, tượng, mảng tường đã cắt hình…). App tách hình dáng vật, so với đường viền ngoài của ảnh mẫu rồi tự xoay, thu phóng, nắn phối cảnh (và uốn lưới nếu cần) cho hai viền trùng nhau.</div>
-      <div class="hint">“Tự dò khung” tìm hình chữ nhật có thật trong ảnh camera (bảng, khung tranh, cửa, viền băng keo dán trên tường). Bấm lại để chuyển sang khung khác.</div>
-      <label class="ck"><input type="checkbox" id="chkSnap" checked>Hút góc vào góc thật khi thả tay cầm</label>
-      <div class="row"><select id="aspMode" aria-label="Cách tính tỉ lệ vùng"><option value="auto">Tỉ lệ thật: tự tính theo phối cảnh</option><option value="real">Tỉ lệ thật: nhập kích thước vùng</option><option value="screen">Tỉ lệ theo hình trên màn (cũ)</option></select></div>
-      <div class="dim" id="realRow"><input type="number" id="realW" min="1" step="any" placeholder="Rộng" aria-label="Chiều rộng thật"><span>×</span><input type="number" id="realH" min="1" step="any" placeholder="Cao" aria-label="Chiều cao thật"><span>cm</span></div>
-      <div class="hint" id="aspInfo"></div>
-      <label class="ck"><input type="checkbox" id="chkClip" checked>Cắt ảnh theo đúng khung vùng</label>
-      <h3 class="sub">Bề mặt không phẳng · hình dạng tự do</h3>
-      <label class="ck"><input type="checkbox" id="chkMesh">Lưới nắn cong (tượng, cột, tường cong, góc nhà…)</label>
-      <div class="row" id="meshRow"><select id="meshN" aria-label="Cỡ lưới"><option value="3">Lưới 3×3</option><option value="4">Lưới 4×4</option><option value="5">Lưới 5×5</option><option value="6">Lưới 6×6</option><option value="8">Lưới 8×8</option></select><button id="btnMeshReset">Làm phẳng lại</button></div>
-      <div class="hint" id="meshHint">Kéo các chấm vàng tới đúng điểm mốc trên bề mặt (đỉnh vai, khuỷu tay, mép cột…) để uốn ảnh ôm theo hình khối. Ảnh chỉ đúng khi nhìn từ vị trí camera, nên giữ camera cố định.</div>
-      <div class="row"><select id="clipMode" aria-label="Giới hạn mẫu"><option value="none">Mẫu hiện trong cả khung</option><option value="poly">Chỉ trong vùng khoanh tay</option><option value="obj">Chỉ trên vật chạm chọn</option></select></div>
-      <div class="row" id="polyRow"><button id="btnPolyEdit">Bắt đầu khoanh</button><button id="btnPolyUndo">Xoá điểm cuối</button><button id="btnPolyClear">Xoá hết</button></div>
-      <div id="objRow"><div class="row"><button id="btnObjPick">Chạm chọn vật</button><button id="btnObjAdd">Chạm thêm vùng</button><button id="btnObjClear">Xoá vùng chọn</button></div>
-        <div class="sl"><span>Độ rộng màu</span><input type="range" id="objTol" min="4" max="70" value="24"><output id="oObjTol">24</output></div></div>
-      <div class="hint" id="clipHint"></div>
-      <label class="ck"><input type="checkbox" id="chkHandles" checked>Hiện khung &amp; tay cầm <kbd>H</kbd></label>
-    </section>
+        <div data-for="plane">
+          <div class="hint">Kéo <b>ô vuông ở góc ảnh</b> để phóng to/thu nhỏ, <b>nút tròn</b> để xoay, kéo trong ảnh để dời (chế độ <b>Ảnh</b> trên thanh dưới khung camera).</div>
+          <div class="lbl">Cho app biết phối cảnh của tường (nên làm)</div>
+          <div class="hint">Dán băng keo thành hình chữ nhật trên tường, hoặc dùng sẵn một khung cửa hay bảng, rồi chọn một trong hai cách:</div>
+          <div class="row"><button class="pri" id="btnDetect">Tự dò khung</button><span class="hint">app tự tìm hình chữ nhật đó, bấm lại để đổi sang khung khác</span></div>
+          <div class="hint">…hoặc chọn <b>Mặt phẳng</b> trên thanh dưới khung camera rồi kéo 4 chấm tròn vào 4 góc.</div>
+          <div class="lbl">Kích thước</div>
+          <div class="row"><select id="aspMode" aria-label="Tỉ lệ khung"><option value="auto">Không biết kích thước thật — app tự tính tỉ lệ</option><option value="real">Biết kích thước thật của khung (cm)</option><option value="screen">Lấy tỉ lệ theo hình trên màn hình</option></select></div>
+          <div class="dim" id="realRow"><input type="number" id="realW" min="1" step="any" placeholder="Rộng khung" aria-label="Chiều rộng khung"><span>×</span><input type="number" id="realH" min="1" step="any" placeholder="Cao khung" aria-label="Chiều cao khung"><span>cm</span></div>
+          <div id="cmRow"><div class="lbl">Ảnh trên tường rộng bao nhiêu?</div><div class="dim"><input type="number" id="imgWcm" min="1" step="any" placeholder="Rộng ảnh" aria-label="Chiều rộng ảnh"><span>×</span><output id="imgHcm">—</output><span>cm</span></div></div>
+          <div class="hint" id="cmHint"></div>
+          <div class="hint" id="aspInfo"></div>
+          <div class="row"><button id="btnFitImg">Ảnh lấp đúng khung</button><span class="hint">dùng khi băng keo đánh dấu đúng vùng muốn vẽ</span></div>
+        </div>
 
-    <section class="g"><h2>4 · Thu phóng &amp; căn chỉnh</h2>
-      <div class="row"><select id="fit" aria-label="Cách vừa khung"><option value="contain">Vừa khung (giữ tỉ lệ)</option><option value="cover">Phủ kín (giữ tỉ lệ)</option><option value="stretch">Kéo giãn đầy vùng</option></select></div>
-      <div class="sl"><span>Thu phóng</span><input type="range" id="scale" min="5" max="1000" value="100"><output id="oScale">100%</output></div>
-      <div class="sl"><span>Xoay</span><input type="range" id="rot" min="-180" max="180" value="0"><output id="oRot">0°</output></div>
-      <div class="sl"><span>Lệch ngang</span><input type="range" id="offX" min="-100" max="100" value="0"><output id="oOffX">0</output></div>
-      <div class="sl"><span>Lệch dọc</span><input type="range" id="offY" min="-100" max="100" value="0"><output id="oOffY">0</output></div>
-      <div class="sl"><span>Độ đậm</span><input type="range" id="opa" min="0" max="100" value="100"><output id="oOpa">100%</output></div>
-      <div class="row"><select id="style" aria-label="Kiểu mẫu"><option value="img">Mẫu: ảnh màu</option><option value="edge">Mẫu: nét viền (dễ tô theo)</option></select><input type="color" id="lineCol" value="#ff2bd6" title="Màu nét viền &amp; lưới" aria-label="Màu nét"></div>
-      <div class="sl"><span>Chi tiết nét</span><input type="range" id="detail" min="1" max="100" value="40"><output id="oDetail">40</output></div>
-      <div class="sl"><span>Độ dày nét</span><input type="range" id="thick" min="1" max="4" value="2"><output id="oThick">2</output></div>
-      <label class="ck"><input type="checkbox" id="chkGrid">Lưới ô vuông trên ảnh (vẽ theo ô)</label>
-      <div class="sl"><span>Số ô</span><input type="range" id="gridN" min="2" max="40" value="10"><output id="oGridN">10</output></div>
-      <label class="ck"><input type="checkbox" id="chkBlink">Nhấp nháy mẫu (so với nét đã vẽ)</label>
-      <div id="cmRow"><div class="dim"><input type="number" id="imgWcm" min="1" step="any" placeholder="Rộng ảnh" aria-label="Chiều rộng ảnh trên tường"><span>×</span><output id="imgHcm">—</output><span>cm</span></div></div>
-      <div class="hint" id="cmHint"></div>
-      <div class="row"><button id="btnShow">Ẩn ảnh mẫu</button><button id="btnCenter">Căn giữa, 100%</button></div>
-    </section>
+        <div data-for="object">
+          <div class="row"><button class="pri" id="btnAutoFit">Tự khớp vào vật</button></div>
+          <div class="hint">Bấm nút rồi <b>chạm vào vật</b> trên khung camera. App so viền vật với viền ảnh rồi tự xoay, thu phóng, nắn và uốn ảnh cho hai viền trùng nhau.</div>
+        </div>
+        <div id="tolRow"><div class="sl"><span>Độ rộng màu</span><input type="range" id="objTol" min="4" max="70" value="24"><output id="oObjTol">24</output></div>
+          <div class="hint">Vùng tách được bị hụt (chỗ tối, chỗ bóng) thì tăng lên; bị lan ra nền thì giảm xuống, rồi chạm lại.</div></div>
 
-    <section class="g"><h2>5 · Chống che khuất</h2>
-      <div class="row"><button id="btnPaint">Chế độ vẽ tường</button></div>
-      <div class="hint">Khi tô vẽ, nét sơn/bút mới làm bề mặt khác với nền đã chụp nên “So sánh nền” sẽ xoá mẫu đúng chỗ vừa vẽ. Nút này tắt so sánh nền, giữ AI nhận tay (tay hiện mờ dưới nét mẫu) và đổi sang nét viền.</div>
-      <label class="ck"><input type="checkbox" id="chkSeg" checked>Nhận diện người bằng AI (hiện người đè lên ảnh)</label>
-      <div class="row"><select id="segModel" aria-label="Mô hình"><option value="people">Người — nhanh</option><option value="objects">Người + vật phổ biến (xe, ghế, thú…) — chậm hơn</option></select></div>
-      <label class="ck"><input type="checkbox" id="chkDiff" checked>So sánh với nền trống (mọi vật lạ)</label>
-      <div class="row"><button id="btnBg">Chụp nền trống</button><span class="hint" id="bgState">Chưa có nền</span></div>
-      <div class="sl"><span>Độ nhạy</span><input type="range" id="sens" min="1" max="100" value="55"><output id="oSens">55</output></div>
-      <label class="ck"><input type="checkbox" id="chkAuto" checked>Tự cập nhật nền khi ánh sáng đổi dần</label>
-      <div class="row"><select id="occStyle" aria-label="Khi bị che"><option value="dim">Chỗ bị che: mẫu mờ đi (vẫn thấy nét trên tay — dễ vẽ)</option><option value="hide">Chỗ bị che: ẩn hẳn mẫu</option><option value="off">Không xử lý che — mẫu luôn nằm trên</option></select></div>
-      <label class="ck"><input type="checkbox" id="chkMask">Tô đỏ vùng bị che (để chỉnh độ nhạy)</label>
-      <div class="hint">Chụp nền khi vùng đặt ảnh đang trống. Nếu camera tự đổi sáng, bấm “Khoá sáng”.</div>
-    </section>
+        <div data-for="curved object">
+          <label class="ck"><input type="checkbox" id="chkMesh">Lưới nắn cong</label>
+          <div class="row" id="meshRow"><select id="meshN" aria-label="Cỡ lưới"><option value="3">Lưới 3×3</option><option value="4">Lưới 4×4</option><option value="5">Lưới 5×5</option><option value="6">Lưới 6×6</option><option value="8">Lưới 8×8</option></select><button id="btnMeshReset">Làm phẳng lại</button></div>
+          <div class="hint" id="meshHint">Chọn <b>Lưới</b> trên thanh dưới khung camera, rồi kéo các chấm vàng tới điểm mốc trên bề mặt (đỉnh vai, mép cột…). Ảnh chỉ đúng khi nhìn từ chỗ đặt camera, nên giữ camera cố định.</div>
+        </div>
 
-    <section class="g"><h2>6 · Kiểu camera</h2>
-      <div class="row"><span class="seg"><label><input type="radio" name="mode" value="fixed" checked>Cố định (chân máy)</label><label><input type="radio" name="mode" value="move">Cầm tay / di chuyển</label></span></div>
-      <div class="row"><button id="btnLock" disabled>Khoá vùng &amp; bám theo</button></div>
-      <div id="stat" class="hint">Camera cố định: vùng đứng yên tuyệt đối, không thể trôi.</div>
-    </section>
+        <details class="more"><summary>Tuỳ chọn thêm</summary>
+          <div class="lbl">Chỉ cho mẫu hiện trong một vùng</div>
+          <div class="hint">Dùng khi không muốn mẫu tràn ra ngoài vật hoặc ra khỏi vùng cần vẽ.</div>
+          <div class="row"><select id="clipMode" aria-label="Giới hạn mẫu"><option value="none">Không giới hạn</option><option value="poly">Trong vùng tự khoanh</option><option value="obj">Trên vật chạm chọn (theo màu)</option></select></div>
+          <div class="row" id="polyRow"><button id="btnPolyEdit">Bắt đầu khoanh</button><button id="btnPolyUndo">Xoá điểm cuối</button><button id="btnPolyClear">Xoá hết</button></div>
+          <div id="objRow"><div class="row"><button id="btnObjPick">Chạm chọn vật</button><button id="btnObjAdd">Chạm thêm vùng</button><button id="btnObjClear">Xoá vùng chọn</button></div></div>
+          <div class="hint" id="clipHint"></div>
+          <div class="lbl">Khác</div>
+          <label class="ck"><input type="checkbox" id="chkSnap" checked>Hút chấm góc vào góc thật khi thả tay</label>
+          <label class="ck"><input type="checkbox" id="chkClip" checked>Cắt ảnh theo khung mặt phẳng</label>
+          <label class="ck"><input type="checkbox" id="chkHandles" checked>Hiện khung &amp; tay cầm <kbd>H</kbd></label>
+          <div class="row"><button id="btnResetQuad">Đặt lại khung về giữa</button></div>
+          <details class="more"><summary>Chỉnh bằng số</summary>
+            <div class="row"><select id="fit" aria-label="Cách vừa khung"><option value="contain">Vừa trong khung (giữ tỉ lệ)</option><option value="cover">Phủ kín khung (giữ tỉ lệ)</option><option value="stretch">Kéo giãn đầy khung</option></select></div>
+            <div class="sl"><span>Thu phóng</span><input type="range" id="scale" min="5" max="1000" value="100"><output id="oScale">100%</output></div>
+            <div class="sl"><span>Xoay</span><input type="range" id="rot" min="-180" max="180" value="0"><output id="oRot">0°</output></div>
+            <div class="sl"><span>Lệch ngang</span><input type="range" id="offX" min="-100" max="100" value="0"><output id="oOffX">0</output></div>
+            <div class="sl"><span>Lệch dọc</span><input type="range" id="offY" min="-100" max="100" value="0"><output id="oOffY">0</output></div>
+            <div class="row"><button id="btnCenter">Căn giữa, 100%</button></div>
+          </details>
+        </details>
+      </div>
+    </details>
 
-    <section class="g"><h2>7 · Xuất</h2>
-      <div class="row"><button id="btnShot">Chụp ảnh</button><button id="btnRec">Quay video</button><button id="btnFull">Toàn màn hình <kbd>F</kbd></button></div>
-    </section>
-    <section class="g"><h2>8 · Xem trực tiếp trên máy khác</h2>
-      <div class="hint">Người vẽ dùng điện thoại quét mã QR để xem hình có ảnh mẫu ngay tại tường, bật/tắt mẫu từ xa. Hai máy cùng Wi-Fi là ổn định nhất.</div>
-      <div class="row"><button class="pri" id="btnShare">Phát cho máy khác</button><span class="hint" id="shareStat"></span></div>
-      <div class="share" id="share"><div class="qr" id="qr"></div><div><div class="hint" style="margin:0">Mã xem</div><div class="code" id="code"></div><div class="link" id="link"></div><div class="row" style="margin-top:6px"><button id="btnCopy">Chép link</button><button id="btnNewCode">Đổi mã</button></div></div></div>
-      <div class="sl"><span>Chất lượng</span><input type="range" id="kbps" min="1" max="12" value="5"><output id="oKbps">5 Mb</output></div>
-      <div class="row"><input type="text" id="joinCode" placeholder="Nhập mã để xem máy khác" maxlength="12" autocomplete="off" autocapitalize="characters"><button id="btnJoin">Xem</button></div>
-      <details><summary>Nâng cao: máy chủ kết nối riêng / TURN</summary>
-        <div class="hint">Mặc định dùng máy chủ PeerJS miễn phí + STUN của Google. Nếu mạng 4G hoặc mạng công ty chặn kết nối trực tiếp, thêm một TURN server.</div>
-        <div class="row"><input type="text" id="sig" placeholder="Signaling host:port/path (trống = mặc định)" autocomplete="off"></div>
-        <div class="row"><input type="text" id="turnUrl" placeholder="turn:host:3478" autocomplete="off"></div>
-        <div class="row"><input type="text" id="turnUser" placeholder="TURN user" autocomplete="off"><input type="password" id="turnPass" placeholder="TURN mật khẩu" autocomplete="off"></div>
-      </details>
-    </section>
+    <details class="step" name="step">
+      <summary><span class="n">3</span><span class="t">Kiểu mẫu để vẽ<small>Mẫu hiện ra trông thế nào</small><span class="st" id="st3"></span></span></summary>
+      <div class="body">
+        <div class="row"><select id="style" aria-label="Kiểu mẫu"><option value="img">Ảnh màu — xem màu, bố cục</option><option value="edge">Nét viền — dễ tô theo nhất</option></select><input type="color" id="lineCol" value="#ff2bd6" title="Màu nét viền &amp; lưới" aria-label="Màu nét"></div>
+        <div id="edgeRow"><div class="sl"><span>Chi tiết nét</span><input type="range" id="detail" min="1" max="100" value="40"><output id="oDetail">40</output></div>
+          <div class="sl"><span>Độ dày nét</span><input type="range" id="thick" min="1" max="4" value="2"><output id="oThick">2</output></div>
+          <div class="hint">Chi tiết thấp = chỉ đường chính; cao = nhiều chi tiết. Chọn màu nét tương phản với tường.</div></div>
+        <div class="sl"><span>Độ đậm</span><input type="range" id="opa" min="0" max="100" value="100"><output id="oOpa">100%</output></div>
+        <label class="ck"><input type="checkbox" id="chkGrid">Lưới ô vuông trên ảnh</label>
+        <div id="gridRow"><div class="sl"><span>Số ô</span><input type="range" id="gridN" min="2" max="40" value="10"><output id="oGridN">10</output></div>
+          <div class="hint">Kẻ ô lên tường bằng phấn trước, rồi vẽ lần lượt từng ô.</div></div>
+        <label class="ck"><input type="checkbox" id="chkBlink">Nhấp nháy mẫu</label>
+        <div class="hint">Mẫu bật/tắt liên tục để thấy nét đã vẽ lệch so với mẫu ở chỗ nào.</div>
+        <div class="row"><button id="btnShow">Ẩn ảnh mẫu</button></div>
+      </div>
+    </details>
+
+    <details class="step" name="step">
+      <summary><span class="n">4</span><span class="t">Khi bắt đầu vẽ<small>Tay, người che lên mẫu</small><span class="st" id="st4"></span></span></summary>
+      <div class="body">
+        <div class="lbl">Bạn đang làm gì?</div>
+        <div class="row"><button class="pri" id="btnPaint">Tô / vẽ theo mẫu</button><button id="btnShowcase">Trình chiếu, có người đi qua</button></div>
+        <div class="hint"><b>Tô / vẽ</b> (nên dùng): tay vẫn thấy nét mẫu mờ bên trên, nét bút mới không làm mất mẫu. <b>Trình chiếu</b>: người và vật đi ngang sẽ che hẳn ảnh, giống như ảnh vẽ thật trên tường.</div>
+        <div class="row"><select id="occStyle" aria-label="Khi bị che"><option value="dim">Chỗ bị tay/người che: mẫu mờ đi</option><option value="hide">Chỗ bị tay/người che: ẩn hẳn mẫu</option><option value="off">Bỏ qua — mẫu luôn nằm trên cùng</option></select></div>
+        <label class="ck"><input type="checkbox" id="chkSeg" checked>Nhận ra tay / người bằng AI</label>
+        <details class="more"><summary>Tuỳ chọn thêm</summary>
+          <div class="row"><select id="segModel" aria-label="Mô hình AI"><option value="people">AI: chỉ người — nhanh</option><option value="objects">AI: người + vật (xe, ghế, thú…) — chậm hơn</option></select></div>
+          <div class="lbl">So sánh với nền trống</div>
+          <div class="hint">Bắt được <b>mọi</b> vật lạ, không chỉ người. <b>Không dùng khi đang tô vẽ</b>, vì nét mới vẽ sẽ bị coi là vật lạ.</div>
+          <label class="ck"><input type="checkbox" id="chkDiff">Bật so sánh nền</label>
+          <div class="row"><button id="btnBg">Chụp nền trống</button><span class="hint" id="bgState">Chưa có nền</span></div>
+          <div class="sl"><span>Độ nhạy</span><input type="range" id="sens" min="1" max="100" value="55"><output id="oSens">55</output></div>
+          <label class="ck"><input type="checkbox" id="chkAuto" checked>Tự cập nhật nền khi ánh sáng đổi dần</label>
+          <label class="ck"><input type="checkbox" id="chkMask">Tô đỏ chỗ bị coi là che (để chỉnh độ nhạy)</label>
+        </details>
+      </div>
+    </details>
+
+    <details class="step" name="step">
+      <summary><span class="n">5</span><span class="t">Xem trên điện thoại khác<small>Người vẽ cầm máy thứ hai ở tường · chụp, quay</small><span class="st" id="st5"></span></span></summary>
+      <div class="body">
+        <div class="row"><button class="pri" id="btnShare">Phát cho máy khác</button><span class="hint" id="shareStat"></span></div>
+        <div class="share" id="share"><div class="qr" id="qr"></div><div><div class="hint" style="margin:0">Mã xem</div><div class="code" id="code"></div><div class="link" id="link"></div><div class="row" style="margin-top:6px"><button id="btnCopy">Chép link</button><button id="btnNewCode">Đổi mã</button></div></div></div>
+        <div class="hint">Máy thứ hai quét mã QR. Màn hình máy đó chỉ còn hình trực tiếp và các nút bật/tắt mẫu, đổi nét, lưới. Hai máy cùng Wi-Fi là ổn định nhất. Máy quay phải luôn mở app.</div>
+        <div class="row"><input type="text" id="joinCode" placeholder="Hoặc nhập mã để xem máy khác" maxlength="12" autocomplete="off" autocapitalize="characters"><button id="btnJoin">Xem</button></div>
+        <div class="lbl">Lưu lại</div>
+        <div class="row"><button id="btnShot">Chụp ảnh</button><button id="btnRec">Quay video</button><button id="btnFull">Toàn màn hình <kbd>F</kbd></button></div>
+        <details class="more"><summary>Tuỳ chọn thêm</summary>
+          <div class="sl"><span>Chất lượng</span><input type="range" id="kbps" min="1" max="12" value="5"><output id="oKbps">5 Mb</output></div>
+          <div class="hint">Hình bị giật thì giảm chất lượng; cùng Wi-Fi thì để 3–6 Mb.</div>
+          <div class="lbl">Máy chủ kết nối riêng / TURN</div>
+          <div class="hint">Chỉ cần khi hai máy khác mạng (4G ↔ Wi-Fi) mà không thấy hình.</div>
+          <div class="row"><input type="text" id="sig" placeholder="Signaling host:port/path (trống = mặc định)" autocomplete="off"></div>
+          <div class="row"><input type="text" id="turnUrl" placeholder="turn:host:3478" autocomplete="off"></div>
+          <div class="row"><input type="text" id="turnUser" placeholder="TURN user" autocomplete="off"><input type="password" id="turnPass" placeholder="TURN mật khẩu" autocomplete="off"></div>
+        </details>
+      </div>
+    </details>
   </aside>
 </main>
 <div id="viewer" hidden>
@@ -267,11 +347,11 @@ const S = {
   ref:[[.3,.3],[.7,.3],[.7,.7],[.3,.7]],   // 4 góc trong hệ toạ độ tham chiếu (chuẩn hoá 0..1)
   disp:null, R2C:I3, C2R:I3, Hinv:null,
   img:null, imgA:1, fit:'contain', scale:1, rot:0, off:[0,0], opa:1, clip:true, handles:true, drag:'img',
-  segOn:true, segModel:'people', diffOn:true, sens:55, auto:true, showMask:false,
+  segOn:true, segModel:'people', diffOn:false, sens:55, auto:true, showMask:false,
   bgReady:false, bgPending:false, mode:'fixed', locked:false,
   show:true, style:'img', line:'#ff2bd6', detail:40, thick:2, grid:false, gridN:10, blink:false,
   snap:true, aspMode:'auto', realW:0, realH:0,
-  occStyle:'dim', gain:1, bgLum:null, edit:'img', clipTold:false,
+  occStyle:'dim', gain:1, bgLum:null, edit:'img', clipTold:false, surface:'plane',
   meshOn:false, meshN:4, mesh:null, clipMode:'none', poly:[], objMask:null, objTol:24, polyEdit:false, pick:false,
   kbps:5, code:'', sig:'', turnUrl:'', turnUser:'', turnPass:''
 };
@@ -397,10 +477,10 @@ let aspCache={k:'',v:1,info:''};
 function regionAspect(){ const k=S.aspMode+S.realW+'x'+S.realH+S.vw+'x'+S.vh+S.ref.flat().join(','); if(k===aspCache.k) return aspCache.v;
   const q=S.ref.map(p=>[p[0]*S.vw,p[1]*S.vh]); const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
   const w=(d(q[0],q[1])+d(q[3],q[2]))/2, h=(d(q[0],q[3])+d(q[1],q[2]))/2, scr=h>1e-6?clampA(w/h):1; let v=scr, info='';
-  if(S.aspMode==='real'&&S.realW>0&&S.realH>0){ v=clampA(S.realW/S.realH); info=`Theo kích thước nhập: ${S.realW} × ${S.realH} cm.`; }
-  else if(S.aspMode==='real'){ info='Nhập chiều rộng và cao thật của vùng (cm).'; const t=trueAspect(q,S.vw,S.vh); if(t) v=t.a; }
-  else if(S.aspMode==='auto'){ const t=trueAspect(q,S.vw,S.vh); if(t){ v=t.a; info=`Tỉ lệ thật ước tính ${v.toFixed(2)} : 1 (rộng : cao)${t.est?'':' · góc nghiêng ít, dùng tiêu cự mặc định'}. Trên màn là ${scr.toFixed(2)}.`; } }
-  else info=`Tỉ lệ theo hình trên màn ${scr.toFixed(2)} : 1.`;
+  if(S.aspMode==='real'&&S.realW>0&&S.realH>0){ v=clampA(S.realW/S.realH); info=`Khung ${S.realW} × ${S.realH} cm.`; }
+  else if(S.aspMode==='real'){ info='Nhập chiều rộng và cao thật của khung (cm).'; const t=trueAspect(q,S.vw,S.vh); if(t) v=t.a; }
+  else if(S.aspMode==='auto'){ const t=trueAspect(q,S.vw,S.vh); if(t){ v=t.a; info=`Khung trên tường có tỉ lệ khoảng ${v.toFixed(2).replace('.',',')} : 1 (rộng : cao).`; } }
+  else info=`Tỉ lệ theo hình trên màn ${scr.toFixed(2).replace('.',',')} : 1.`;
   aspCache={k,v,info}; return v; }
 
 /* ================= Ảnh ghép ================= */
@@ -596,7 +676,7 @@ $('btnLock').onclick=()=>S.locked?unlock():lock();
 let fps=0, lastT=performance.now();
 function frame(now){
   requestAnimationFrame(frame);
-  if(!S.src||vid.readyState<2||!vid.videoWidth){ $('empty').hidden=false; return; } $('empty').hidden=true;
+  if(!S.src||vid.readyState<2||!vid.videoWidth){ $('empty').hidden=false; stage.classList.add('nosrc'); return; } $('empty').hidden=true; stage.classList.remove('nosrc');
   if(vid.videoWidth!==S.vw||vid.videoHeight!==S.vh) onSize(vid.videoWidth,vid.videoHeight);
   const fresh=S.newFrame||!S.rvfc; S.newFrame=false;
   if(fresh){
@@ -736,9 +816,9 @@ function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textCont
   $('chkMesh').checked=S.meshOn; $('meshN').value=S.meshN; $('clipMode').value=S.clipMode; $('objTol').value=S.objTol; $('oObjTol').textContent=S.objTol; updClipUI();
   $('chkSnap').checked=S.snap; $('aspMode').value=S.aspMode; $('realRow').hidden=S.aspMode!=='real'; $('realW').value=S.realW||''; $('realH').value=S.realH||'';
   $('fit').value=S.fit; $('chkClip').checked=S.clip; $('chkHandles').checked=S.handles; $('chkSeg').checked=S.segOn; $('segModel').value=S.segModel; $('chkDiff').checked=S.diffOn; $('chkAuto').checked=S.auto; $('chkMask').checked=S.showMask; $('occStyle').value=S.occStyle;
-  document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); setEdit(S.edit);
+  document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); setEdit(S.edit); if(typeof updSteps==='function') updSteps();
   const real=S.aspMode==='real'&&S.realW>0&&S.realH>0; $('cmRow').hidden=!real; if(real){ const t=sizeText(); if(document.activeElement!==$('imgWcm')) $('imgWcm').value=t.w.toFixed(1); $('imgHcm').textContent=t.h.toFixed(1); }
-  $('cmHint').innerHTML=real?'Gõ chiều rộng mong muốn, chiều cao tự tính theo tỉ lệ ảnh.':'Muốn đặt đúng kích thước thật (cm): ở mục 3 chọn <b>Tỉ lệ thật: nhập kích thước vùng</b> và nhập kích thước của khung mặt phẳng.'; }
+  $('cmHint').innerHTML=real?'Gõ chiều rộng mong muốn, chiều cao tự tính theo tỉ lệ ảnh.':'Muốn ảnh đúng số cm: đo khung chữ nhật đã đặt ở trên, chọn <b>Biết kích thước thật của khung</b> rồi nhập.'; }
 for(const id of Object.keys(sliders)) $(id).addEventListener('input',e=>{ const v=+e.target.value; $(sliders[id][0]).textContent=sliders[id][1](v);
   setters[id](v); save(); });
 $('style').onchange=e=>{ S.style=e.target.value; save(); };
@@ -748,6 +828,35 @@ $('chkBlink').onchange=e=>{ S.blink=e.target.checked; save(); };
 $('btnShow').onclick=()=>{ S.show=!S.show; syncUI(); save(); };
 $('btnPaint').onclick=()=>{ S.diffOn=false; S.segOn=true; S.occStyle='dim'; S.style='edge'; if(S.opa<.5) S.opa=.9; S.show=true; loadSeg(); syncUI(); save(); toast('Chế độ vẽ: nét viền, tay hiện mờ dưới nét mẫu, tắt so sánh nền (nét sơn/bút mới sẽ không làm mất mẫu).'); };
 $('occStyle').onchange=e=>{ S.occStyle=e.target.value; save(); };
+$('btnShowcase').onclick=()=>{ S.segOn=true; S.diffOn=true; S.occStyle='hide'; S.style='img'; S.show=true; loadSeg(); syncUI(); save(); toast('Chế độ trình chiếu: khi vùng ảnh đang trống, bấm “Chụp nền trống” (Tuỳ chọn thêm của bước 4).'); };
+/* ===== Bố cục theo bước ===== */
+const steps=[...document.querySelectorAll('details.step')];
+steps.forEach(d=>d.addEventListener('toggle',()=>{ if(d.open) steps.forEach(o=>{ if(o!==d&&o.open) o.open=false; }); }));
+function openStep(n){ const d=steps[n-1]; if(!d) return; d.open=true; setTimeout(()=>d.scrollIntoView({block:'start',behavior:'smooth'}),50); }
+document.querySelectorAll('input[name=surface]').forEach(r=>r.onchange=e=>{ S.surface=e.target.value;
+  if(S.surface==='curved'&&!S.meshOn){ S.meshOn=true; if(!S.mesh||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN); S.edit='mesh'; }
+  if(S.surface==='plane'&&S.meshOn&&S.mesh&&S.mesh.some((p,k)=>Math.hypot(p[0]-(k%S.meshN)/(S.meshN-1),p[1]-((k/S.meshN)|0)/(S.meshN-1))>1e-3)) toast('Lưới nắn cong vẫn đang uốn ảnh. Tường phẳng thì mở “Bề mặt cong” và bấm “Làm phẳng lại” hoặc bỏ chọn lưới.');
+  syncUI(); save(); });
+const isDefRef=()=>S.ref.every((p,i)=>Math.hypot(p[0]-[.3,.7,.7,.3][i],p[1]-[.3,.3,.7,.7][i])<1e-6);
+const say=(el,t)=>{ if(el.textContent!==t) el.textContent=t; };
+function updSteps(){
+  document.querySelectorAll('[data-for]').forEach(el=>{ el.hidden=!el.dataset.for.split(' ').includes(S.surface); });
+  const sf=document.querySelector(`input[name=surface][value=${S.surface}]`); if(sf) sf.checked=true;
+  $('tolRow').hidden=!(S.surface==='object'||S.clipMode==='obj'); $('edgeRow').hidden=S.style!=='edge'; $('gridRow').hidden=!S.grid;
+  say($('projNow'),PJ.cur?PJ.cur.name:'—');
+  say($('st1'),[S.src?'camera bật':'chưa bật camera',S.img?'có ảnh':'chưa có ảnh'].join(' · '));
+  say($('st2'),({plane:'tường phẳng',object:'vật cắt sẵn',curved:'bề mặt cong'})[S.surface]+(S.img&&S.vw?' · '+sizeText().txt:''));
+  say($('st3'),(S.style==='edge'?'nét viền':'ảnh màu')+` · ${Math.round(S.opa*100)}%`+(S.grid?' · lưới ô':'')+(S.show?'':' · đang ẩn'));
+  say($('st4'),({dim:'tay: mẫu mờ',hide:'tay: ẩn mẫu',off:'bỏ qua che'})[S.occStyle]+(S.diffOn?' · so nền':''));
+  say($('st5'),NET.peer?(NET.conns.size?NET.conns.size+' máy đang xem':'đang phát, chờ quét'):'chưa phát');
+  let n=0, t='';
+  if(!S.src){ n=1; t='Bấm <b>Bật camera</b> ở bước 1.'; } else if(!S.img){ n=1; t='Chọn <b>ảnh muốn vẽ</b> ở bước 1.'; }
+  else if(isDefRef()&&S.scale===1&&!S.off[0]&&!S.off[1]){ n=2; t=S.surface==='object'?'Bước 2: bấm <b>Tự khớp vào vật</b> rồi chạm vào vật.':'Bước 2: đặt ảnh lên đúng chỗ và đúng cỡ.'; }
+  else if(!NET.peer){ n=5; t='Đã đặt xong. Muốn xem trên điện thoại khác để vẽ: <b>bước 5</b>. Kiểu nét: bước 3.'; }
+  else { n=0; t='Sẵn sàng vẽ. Bấm <b>Ẩn/hiện mẫu</b> trên máy xem để so nét.'; }
+  const ns=$('nextStep'); if(ns.dataset.t!==t){ ns.dataset.t=t; ns.innerHTML='<b>Tiếp theo:</b> '+t; } ns.dataset.go=n; }
+$('nextStep').onclick=()=>{ const n=+$('nextStep').dataset.go; if(n) openStep(n); };
+$('nextStep').onkeydown=e=>{ if(e.key==='Enter') $('nextStep').click(); };
 for(const k of ['sig','turnUrl','turnUser','turnPass']) $(k).onchange=e=>{ S[k]=e.target.value.trim(); save(); if(NET.peer) toast('Bấm Dừng phát rồi Phát lại để dùng cấu hình mới.'); };
 $('fit').onchange=e=>{ S.fit=e.target.value; save(); };
 $('chkClip').onchange=e=>{ S.clip=e.target.checked; save(); };
@@ -965,7 +1074,8 @@ addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')) re
 /* HUD & thông báo */
 let toastT=0, pillTrk=false; function toast(m){ setPill(m,'warn'); toastT=performance.now()+4500; }
 function setPill(m,c=''){ const p=$('pill'); p.hidden=!m; p.textContent=m; p.className='pill '+c; }
-function hud(){ const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
+let stepT=0;
+function hud(){ if(performance.now()-stepT>500){ stepT=performance.now(); updSteps(); } const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
   if(S.segOn) L.push(seg.ready?`AI người: ${seg.ms.toFixed(0)} ms`:'AI người: đang tải…');
   if(S.diffOn) L.push(S.bgReady?`So sánh nền: bật · bù sáng ×${S.gain.toFixed(2)}`:'So sánh nền: chưa chụp nền');
   let pill='';
@@ -978,7 +1088,7 @@ function hud(){ const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
 /* Lưu / khôi phục */
 /* ================= Dự án (IndexedDB): mỗi dự án = ảnh + khung + lưới + vùng khoanh + cài đặt ================= */
 const GK=['handles','drag','snap','kbps','code','sig','turnUrl','turnUser','turnPass'];   // cài đặt chung của máy
-const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol','occStyle'];
+const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol','occStyle','surface'];
 const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
 const pick=(o,ks)=>{ const r={}; for(const k of ks) r[k]=clone(o[k]); return r; };
 S.mesh=meshGrid(S.meshN); const DEF=pick(S,PK);

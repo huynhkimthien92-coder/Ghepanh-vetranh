@@ -24,6 +24,19 @@ Lần đầu app cần internet để tải thư viện (MediaPipe ~ vài MB, Op
 
 ## 2. Cách dùng
 
+Bảng điều khiển chia thành **5 bước theo đúng trình tự làm việc**. Mỗi bước bấm vào tên để mở, mở bước này thì các bước khác tự gập lại. Khi gập, mỗi bước hiện tình trạng ngắn (ví dụ “camera bật · có ảnh”). Dòng **Tiếp theo** ở trên cùng luôn chỉ việc cần làm tiếp; bấm vào là mở đúng bước. Các tuỳ chọn ít dùng nằm trong **Tuỳ chọn thêm** của từng bước.
+
+| Bước | Dùng để | Có gì |
+|---|---|---|
+| **1. Camera & ảnh mẫu** | bắt đầu | bật camera, chọn ảnh, máy quay cố định hay cầm tay · *thêm:* video thử, khoá sáng |
+| **2. Đặt ảnh lên bề mặt** | ảnh nằm ở đâu, to cỡ nào | chọn **bạn vẽ lên gì**: *Tường phẳng* (tự dò khung, kích thước cm, ảnh lấp đúng khung) · *Vật cắt sẵn hình* (tự khớp vào vật) · *Bề mặt cong* (lưới nắn) · *thêm:* giới hạn mẫu trong vùng, hút góc, chỉnh bằng số |
+| **3. Kiểu mẫu để vẽ** | mẫu trông thế nào | ảnh màu / nét viền, độ đậm, lưới ô, nhấp nháy, ẩn mẫu |
+| **4. Khi bắt đầu vẽ** | tay, người che lên mẫu | **Tô / vẽ theo mẫu** (nên dùng) hoặc **Trình chiếu**, cách xử lý chỗ bị che · *thêm:* mô hình AI, so sánh nền trống |
+| **5. Xem trên điện thoại khác** | người vẽ cầm máy thứ hai | phát QR, nhập mã xem, chụp ảnh, quay video · *thêm:* chất lượng, TURN |
+
+Thanh nhỏ **Ảnh / Mặt phẳng / Lưới** ngay dưới khung camera chọn đang kéo gì trên hình.
+
+
 ### Dự án
 Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, vùng khoanh, vật đã chọn và toàn bộ cài đặt (thu phóng, nét viền, lưới ô, độ đậm…). Mọi chỉnh sửa **tự lưu** vào dự án đang mở, ngay trên trình duyệt của máy đó (IndexedDB).
 - **Chuyển sang hình khác, giữ hình cũ**: bấm **Dự án mới**. Dự án cũ còn nguyên, muốn quay lại thì chọn trong danh sách.
@@ -39,7 +52,7 @@ Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, v
 1. **Bật camera** (hoặc **Mở video thử** để test bằng một file video).
 2. **Chọn ảnh** (hoặc kéo thả ảnh vào khung). PNG nền trong suốt giữ nguyên độ trong.
 3. **Đặt khung vùng**, có 4 cách:
-   - **Tự khớp vào vật** (dùng khi vật đã có sẵn hình dáng giống ảnh mẫu: tấm xốp cắt hình, tượng, mảng tường cắt sẵn…): bấm nút rồi **chạm vào vật**. App tách hình dáng vật theo màu và lấy đường viền ngoài của ảnh mẫu (nét vẽ trên nền trắng được tự nối kín; PNG trong suốt thì dùng phần không trong suốt). Sau đó app tự xoay, thu phóng, nắn phối cảnh, tự **lật ngang** nếu vật bị lật, và **uốn lưới** nếu vật cắt hơi méo, để hai đường viền trùng nhau. Vật tách thiếu hoặc lan ra nền thì chỉnh **Độ rộng màu** (mục khoanh vùng) rồi bấm lại.
+   - **Tự khớp vào vật** (dùng khi vật đã có sẵn hình dáng giống ảnh mẫu: tấm xốp cắt hình, tượng, mảng tường cắt sẵn…): bấm nút rồi **chạm vào vật**. App tách hình dáng vật theo màu và lấy đường viền ngoài của ảnh mẫu (nét vẽ trên nền trắng được tự nối kín; PNG trong suốt thì dùng phần không trong suốt). Sau đó app tự xoay, thu phóng, nắn phối cảnh, tự **lật ngang** nếu vật bị lật, và **uốn lưới** nếu vật cắt hơi méo, để hai đường viền trùng nhau. Vật tách thiếu hoặc lan ra nền thì chỉnh **Độ rộng màu** (ngay dưới nút) rồi bấm lại.
    - **Tự dò khung**: app tìm hình chữ nhật có thật trong ảnh camera (bảng, khung tranh, cửa, hoặc viền băng keo bạn dán quanh vùng cần vẽ). Có nhiều khung thì bấm lại để chuyển sang khung khác.
    - **Kéo 4 chấm tròn** bằng tay. Khi thả, góc tự **hút vào góc thật gần nhất** (dấu băng keo, góc bảng), tắt được bằng ô “Hút góc…”.
    - **Đặt lại vùng** để về khung mặc định.
@@ -52,7 +65,7 @@ Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, v
      - *Chỉ trên vật chạm chọn*: bấm **Chạm chọn vật** rồi chạm vào vật (ví dụ tượng chưa sơn). App tự tách vùng cùng màu với điểm chạm. Còn hụt chỗ nào thì **Chạm thêm vùng**; lan quá thì giảm **Độ rộng màu**.
 4. **Chỉnh ảnh như sticker**: thanh nhỏ dưới khung camera có 3 chế độ.
    - **Ảnh** (mặc định): kéo **ô vuông ở góc ảnh** để phóng to/thu nhỏ (giữ tỉ lệ), kéo **nút tròn** để xoay (gần 0° tự hút về thẳng), kéo bên trong để dời, chụm 2 ngón để phóng/xoay. Ảnh luôn nằm đúng phối cảnh của tường, và nhãn dưới ảnh cho biết kích thước.
-     - **Đúng kích thước thật**: ở mục 3 chọn *Tỉ lệ thật: nhập kích thước vùng*, nhập kích thước khung mặt phẳng (ví dụ khung băng keo 200 × 150 cm), rồi gõ **chiều rộng ảnh mong muốn (cm)** ở mục 4, chiều cao tự tính.
+     - **Đúng kích thước thật**: ở bước 2, phần *Kích thước*, chọn *Biết kích thước thật của khung*, nhập kích thước khung (ví dụ khung băng keo 200 × 150 cm), rồi gõ **chiều rộng ảnh mong muốn (cm)**, chiều cao tự tính.
    - **Mặt phẳng**: chỉ hiện 4 chấm góc. Dùng để khớp một hình chữ nhật thật trên tường, giúp app biết phối cảnh. Kéo bên trong để dời cả khung.
    - **Lưới**: chỉ hiện khi bật lưới nắn cong. Trên tường phẳng thì tắt lưới (hoặc bấm *Làm phẳng lại*) cho gọn.
    Ngoài ra vẫn có các thanh trượt: chọn *Vừa khung / Phủ kín / Kéo giãn*, rồi chỉnh *Thu phóng, Xoay, Lệch ngang/dọc, Độ đậm*. Cũng dùng được: lăn chuột hoặc chụm 2 ngón để phóng/xoay, kéo bên trong vùng để dời ảnh (chuyển sang “dời cả vùng” để dời luôn khung).
@@ -61,7 +74,7 @@ Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, v
    - *Cố định (chân máy)*: vùng đứng yên tuyệt đối trên khung hình, nên không bao giờ bị trôi hay mất.
    - *Cầm tay / di chuyển*: đặt 4 góc lúc vùng đang trống → bấm **Khoá vùng & bám theo**. Ảnh sẽ bám theo mặt phẳng khi camera di chuyển.
 7. **Xuất**: Chụp ảnh (PNG), Quay video (WebM/MP4), Toàn màn hình (phím `F`; phím `H` ẩn/hiện tay cầm khi trình chiếu).
-8. **Xem trực tiếp trên máy khác**: xem mục 3 bên dưới.
+8. **Xem trực tiếp trên máy khác**: xem phần “Vẽ tường theo mẫu” bên dưới.
 
 Trên điện thoại cầm dọc, khung camera **luôn dính ở trên cùng**, phần cài đặt cuộn bên dưới, nên chỉnh tới đâu thấy kết quả tới đó. Cầm ngang thì cài đặt nằm cột bên phải.
 
@@ -72,7 +85,7 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 **Bố trí:** máy quay (điện thoại/laptop) đặt **cố định trên chân máy** nhìn cả bức tường, người vẽ cầm **điện thoại thứ hai** đứng tại tường.
 
 1. Trên máy quay: bật camera, chọn ảnh, kéo 4 góc khớp vùng tường cần vẽ, chỉnh thu phóng cho đúng kích thước.
-2. Bấm **Chế độ vẽ tường**: mẫu chuyển sang *nét viền*, AI người bật (tay và người hiện trước mẫu), *So sánh nền* tắt (vì nét sơn mới sẽ làm tường khác nền đã chụp).
+2. Bấm **Tô / vẽ theo mẫu** (bước 4): mẫu chuyển sang *nét viền*, AI người bật (tay và người hiện trước mẫu), *So sánh nền* tắt (vì nét sơn mới sẽ làm tường khác nền đã chụp).
 3. Bấm **Phát cho máy khác** → hiện **mã QR + mã 6 ký tự**.
 4. Điện thoại của người vẽ: quét QR (hoặc mở app → nhập mã → *Xem*). Màn hình chỉ còn hình trực tiếp và thanh nút:
    - **Ẩn/Hiện mẫu, Mờ −/Đậm +, Nét viền/Ảnh màu, Lưới, Nhấp nháy**: điều khiển ngược về máy quay, nên không phải đi lại chỗ chân máy.
@@ -129,7 +142,7 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 
 ## 6. Mẹo & giới hạn
 - **Camera tự đổi sáng** (iPhone tự chỉnh phơi sáng khi tay/người vào khung): app **tự bù sáng** mỗi khung hình, HUD hiện “bù sáng ×…”. So sánh nền cũng chịu được camera rung/bám lệch khoảng 2 px. Nếu vẫn báo nhầm: chụp nền lại hoặc giảm Độ nhạy.
-- **Khi vẽ bằng tay:** chọn *Chỗ bị che: mẫu mờ đi* (mặc định), như vậy tay vẫn được nhận ra nhưng nét mẫu chỉ mờ đi trên tay chứ không mất, và bạn vẫn thấy nét ngay dưới đầu bút. Bấm **Chế độ vẽ tường** để tắt luôn so sánh nền, vì nét bút/sơn mới vẽ sẽ khác nền đã chụp và làm mất mẫu đúng chỗ vừa vẽ.
+- **Khi vẽ bằng tay:** chọn *Chỗ bị che: mẫu mờ đi* (mặc định), như vậy tay vẫn được nhận ra nhưng nét mẫu chỉ mờ đi trên tay chứ không mất, và bạn vẫn thấy nét ngay dưới đầu bút. Bấm **Tô / vẽ theo mẫu** (bước 4) để tắt luôn so sánh nền, vì nét bút/sơn mới vẽ sẽ khác nền đã chụp và làm mất mẫu đúng chỗ vừa vẽ.
 - Vật che **cùng màu với nền** (áo trắng trước tường trắng) thì so sánh nền khó bắt, khi đó AI người sẽ đỡ phần này.
 - Chế độ cầm tay cần vùng hoặc xung quanh vùng có **hoạ tiết/cạnh**. Tường trơn tuyệt đối thì không có gì để bám, hãy dùng chân máy hoặc kéo vùng rộng ra.
 - Vật được đặt **cố định lâu** trước vùng sẽ tiếp tục được coi là vật che, bấm “Chụp nền trống” lại nếu muốn ảnh phủ lên nó.
