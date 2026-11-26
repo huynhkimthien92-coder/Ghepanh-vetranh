@@ -23,7 +23,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-u
 .ov polygon{fill:rgba(61,220,151,.06);stroke:var(--acc);stroke-width:1.5;stroke-dasharray:6 4;pointer-events:auto;cursor:move}
 .h{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:2px solid var(--acc);background:rgba(20,23,22,.55);pointer-events:auto;cursor:grab;touch-action:none;display:grid;place-items:center;font:600 12px Inter,sans-serif;color:var(--acc)}
 .h:active{cursor:grabbing;background:var(--acc);color:#000}
-.hidehandles .ov{display:none}
+.hidehandles .ov,.hidehandles .editbar{display:none}
+.bh{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:6px;background:#fff;border:2px solid #ff2bd6;pointer-events:auto;touch-action:none;cursor:nwse-resize}
+.rh{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:#ff2bd6;border:2px solid #fff;pointer-events:auto;touch-action:none;cursor:grab}
+#imgBoxPoly{fill:none;stroke:#fff;stroke-width:1.3;stroke-dasharray:6 4;pointer-events:none}
+#rotLine{stroke:#fff;stroke-width:1.3;fill:none;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,10px);background:rgba(0,0,0,.7);color:#fff;font:600 12px Inter,sans-serif;padding:3px 9px;border-radius:99px;white-space:nowrap;pointer-events:none}
+.editbar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:2px;padding:3px;border-radius:99px;background:rgba(0,0,0,.65);z-index:3}
+.editbar button{min-height:38px;border:0;background:transparent;border-radius:99px;padding:0 14px;font-size:13px}
+.editbar button.on{background:var(--acc);color:#06140e;font-weight:600}
+.ed-img .h,.ed-img .mh,.ed-img #meshPath{display:none}
+.ed-plane .bh,.ed-plane .rh,.ed-plane .mh,.ed-plane #meshPath,.ed-plane #rotLine{display:none}
+.ed-mesh .bh,.ed-mesh .rh,.ed-mesh .h,.ed-mesh #rotLine,.ed-mesh .tag{display:none}
 .hud{position:absolute;left:10px;top:10px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.6);font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#cfd8d3;pointer-events:none;white-space:pre}
 .pill{position:absolute;right:10px;top:10px;padding:5px 12px;border-radius:99px;font-weight:600;font-size:13px;background:rgba(0,0,0,.6);pointer-events:none}
 .pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
@@ -97,12 +108,14 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
   <section class="stage" id="stage">
     <canvas id="gl" width="2" height="2"></canvas>
     <div class="ov" id="ov">
-      <svg id="ovsvg"><polygon id="poly" points=""/><path id="meshPath" d=""/><polygon id="clipPoly" points=""/></svg>
+      <svg id="ovsvg"><polygon id="poly" points=""/><path id="meshPath" d=""/><polygon id="clipPoly" points=""/><polygon id="imgBoxPoly" points=""/><path id="rotLine" d=""/></svg>
+      <div class="bh" data-i="0"></div><div class="bh" data-i="1"></div><div class="bh" data-i="2"></div><div class="bh" data-i="3"></div><div class="rh" title="Xoay"></div><div class="tag" id="sizeTag"></div>
       <div class="h" data-i="0">1</div><div class="h" data-i="1">2</div><div class="h" data-i="2">3</div><div class="h" data-i="3">4</div>
     </div>
     <div class="empty" id="empty"><div><b>Chưa có nguồn hình</b>Bấm “Bật camera” hoặc “Mở video thử” ở bảng bên phải.</div></div>
     <div class="hud" id="hud"></div>
     <div class="pill" id="pill" hidden></div>
+    <div class="editbar" id="editBar" role="group" aria-label="Chế độ chỉnh"><button data-ed="img" class="on">Ảnh</button><button data-ed="plane">Mặt phẳng</button><button data-ed="mesh" id="edMesh" hidden>Lưới</button></div>
   </section>
 
   <aside class="panel">
@@ -130,8 +143,7 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
     </section>
 
     <section class="g"><h2>3 · Vùng đặt ảnh</h2>
-      <div class="hint">Kéo 4 chấm tròn khớp 4 góc vùng thật (tường, bảng, sàn…). Kéo bên trong vùng để dời, lăn chuột / chụm 2 ngón để thu phóng.</div>
-      <div class="row"><span class="seg"><label><input type="radio" name="drag" value="img" checked>Kéo: dời ảnh</label><label><input type="radio" name="drag" value="quad">dời cả vùng</label></span></div>
+      <div class="hint">Thanh nhỏ dưới khung camera chọn đang chỉnh gì:<br>• <b>Ảnh</b>: kéo ô vuông ở góc ảnh để phóng to/thu nhỏ, nút tròn để xoay, kéo trong ảnh để dời. Ảnh luôn nằm đúng phối cảnh của tường.<br>• <b>Mặt phẳng</b>: kéo 4 chấm tròn khớp 4 góc một hình chữ nhật thật trên tường (khung cửa, viền băng keo…) để app biết phối cảnh; kéo bên trong để dời cả khung.<br>• <b>Lưới</b>: kéo chấm vàng uốn ảnh theo bề mặt cong (khi bật lưới nắn).</div>
       <div class="row"><button class="pri" id="btnDetect">Tự dò khung</button><button id="btnFitImg">Khớp khung theo tỉ lệ ảnh</button><button id="btnResetQuad">Đặt lại vùng</button></div>
       <div class="row"><button class="pri" id="btnAutoFit">Tự khớp vào vật</button></div>
       <div class="hint">“Tự khớp vào vật”: bấm rồi chạm vào vật (tấm xốp, tượng, mảng tường đã cắt hình…). App tách hình dáng vật, so với đường viền ngoài của ảnh mẫu rồi tự xoay, thu phóng, nắn phối cảnh (và uốn lưới nếu cần) cho hai viền trùng nhau.</div>
@@ -155,7 +167,7 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
 
     <section class="g"><h2>4 · Thu phóng &amp; căn chỉnh</h2>
       <div class="row"><select id="fit" aria-label="Cách vừa khung"><option value="contain">Vừa khung (giữ tỉ lệ)</option><option value="cover">Phủ kín (giữ tỉ lệ)</option><option value="stretch">Kéo giãn đầy vùng</option></select></div>
-      <div class="sl"><span>Thu phóng</span><input type="range" id="scale" min="10" max="400" value="100"><output id="oScale">100%</output></div>
+      <div class="sl"><span>Thu phóng</span><input type="range" id="scale" min="5" max="1000" value="100"><output id="oScale">100%</output></div>
       <div class="sl"><span>Xoay</span><input type="range" id="rot" min="-180" max="180" value="0"><output id="oRot">0°</output></div>
       <div class="sl"><span>Lệch ngang</span><input type="range" id="offX" min="-100" max="100" value="0"><output id="oOffX">0</output></div>
       <div class="sl"><span>Lệch dọc</span><input type="range" id="offY" min="-100" max="100" value="0"><output id="oOffY">0</output></div>
@@ -166,6 +178,8 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
       <label class="ck"><input type="checkbox" id="chkGrid">Lưới ô vuông trên ảnh (vẽ theo ô)</label>
       <div class="sl"><span>Số ô</span><input type="range" id="gridN" min="2" max="40" value="10"><output id="oGridN">10</output></div>
       <label class="ck"><input type="checkbox" id="chkBlink">Nhấp nháy mẫu (so với nét đã vẽ)</label>
+      <div id="cmRow"><div class="dim"><input type="number" id="imgWcm" min="1" step="any" placeholder="Rộng ảnh" aria-label="Chiều rộng ảnh trên tường"><span>×</span><output id="imgHcm">—</output><span>cm</span></div></div>
+      <div class="hint" id="cmHint"></div>
       <div class="row"><button id="btnShow">Ẩn ảnh mẫu</button><button id="btnCenter">Căn giữa, 100%</button></div>
     </section>
 
@@ -257,7 +271,7 @@ const S = {
   bgReady:false, bgPending:false, mode:'fixed', locked:false,
   show:true, style:'img', line:'#ff2bd6', detail:40, thick:2, grid:false, gridN:10, blink:false,
   snap:true, aspMode:'auto', realW:0, realH:0,
-  occStyle:'dim', gain:1, bgLum:null,
+  occStyle:'dim', gain:1, bgLum:null, edit:'img', clipTold:false,
   meshOn:false, meshN:4, mesh:null, clipMode:'none', poly:[], objMask:null, objTol:24, polyEdit:false, pick:false,
   kbps:5, code:'', sig:'', turnUrl:'', turnUser:'', turnPass:''
 };
@@ -617,7 +631,7 @@ const quadOK=q=>Array.isArray(q)&&q.length===4&&q.every(p=>Array.isArray(p)&&fin
 function sanitize(){ let fixed=false; const D={scale:1,rot:0,opa:1};
   if(!quadOK(S.ref)){ S.ref=[[.3,.3],[.7,.3],[.7,.7],[.3,.7]]; fixed=true; }
   for(const k of ['scale','rot','opa']) if(!fin(S[k])){ S[k]=D[k]; fixed=true; }
-  S.scale=Math.max(.1,Math.min(4,S.scale));
+  S.scale=Math.max(.05,Math.min(20,S.scale));
   if(!Array.isArray(S.off)||!fin(S.off[0])||!fin(S.off[1])){ S.off=[0,0]; fixed=true; }
   if(S.mesh&&!(Array.isArray(S.mesh)&&S.mesh.length===S.meshN*S.meshN&&S.mesh.every(p=>Array.isArray(p)&&fin(p[0])&&fin(p[1])))){ S.mesh=meshGrid(S.meshN); fixed=true; }
   if(Array.isArray(S.poly)) S.poly=S.poly.filter(p=>Array.isArray(p)&&fin(p[0])&&fin(p[1])); else S.poly=[];
@@ -656,7 +670,13 @@ function overlay(){ if(!S.disp||!S.handles) return; const w=ov.clientWidth, h=ov
   else { ensureH(mhs,0,'mh'); meshPathEl.setAttribute('d',''); }
   if(S.clipMode==='poly'){ ensureH(phs,S.poly.length,'ph'); const pts=S.poly.map(q=>{ const c=ap(S.R2C,q[0],q[1]); return [c[0]*w,c[1]*h]; });
     pts.forEach((c,i)=>{ phs[i].style.left=c[0]+'px'; phs[i].style.top=c[1]+'px'; }); clipPolyEl.setAttribute('points',pts.map(c=>c.join(',')).join(' ')); }
-  else { ensureH(phs,0,'ph'); clipPolyEl.setAttribute('points',''); } }
+  else { ensureH(phs,0,'ph'); clipPolyEl.setAttribute('points',''); }
+  const B=S.img&&S.edit==='img'?imgBox():null, bhs=document.querySelectorAll('.bh'), rh=document.querySelector('.rh'), tag=$('sizeTag');
+  if(B&&B.scr.every(Boolean)&&B.rot&&B.top){ B.scr.forEach((c,i)=>{ bhs[i].hidden=false; bhs[i].style.left=c[0]*w+'px'; bhs[i].style.top=c[1]*h+'px'; });
+    rh.hidden=false; rh.style.left=B.rot[0]*w+'px'; rh.style.top=B.rot[1]*h+'px'; $('imgBoxPoly').setAttribute('points',B.scr.map(c=>`${c[0]*w},${c[1]*h}`).join(' '));
+    $('rotLine').setAttribute('d',`M${B.top[0]*w},${B.top[1]*h}L${B.rot[0]*w},${B.rot[1]*h}`); tag.hidden=false; tag.textContent=sizeText().txt;
+    const lo=B.scr.reduce((m,c)=>c[1]>m[1]?c:m,B.scr[0]); tag.style.left=(B.scr.reduce((s2,c)=>s2+c[0],0)/4)*w+'px'; tag.style.top=Math.min(h-24,lo[1]*h)+'px'; }
+  else { bhs.forEach(b=>b.hidden=true); rh.hidden=true; tag.hidden=true; $('imgBoxPoly').setAttribute('points',''); $('rotLine').setAttribute('d',''); } }
 const norm = e => { const r=ov.getBoundingClientRect(); if(!(r.width>1&&r.height>1)) return [.5,.5]; const x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height; return [fin(x)?x:.5,fin(y)?y:.5]; };
 const toRef = p => { const q=ap(S.C2R,p[0],p[1]); return [q[0],q[1]]; };
 const toRegion = p => { if(!S.Hinv) return null; const q=ap(S.Hinv,p[0],p[1]); return [q[0],q[1]]; };
@@ -665,23 +685,46 @@ hs.forEach(el=>el.addEventListener('pointerdown',e=>{ if(S.snap&&!cv) loadCV().c
 hs.forEach(el=>el.addEventListener('pointermove',e=>{ if(drag?.type!=='corner') return; const p=norm(e).map(v=>Math.max(-.2,Math.min(1.2,v))); S.ref[drag.i]=toRef(p); filt.forEach(f=>f.reset()); }));
 hs.forEach(el=>el.addEventListener('pointerup',()=>{ const i=drag?.i; drag=null; if(i!==undefined) snapCorner(i); save(); }));
 stage.addEventListener('pointerdown',e=>{ const t=e.target;
+  if(t.classList.contains('bh')||t.classList.contains('rh')){ e.preventDefault(); cap(stage,e); const B=imgBox(), q0=toAsp(norm(e)); if(!q0) return;
+    const d0=Math.hypot(q0[0]-B.center[0],q0[1]-B.center[1]); drag={type:t.classList.contains('bh')?'box':'rot',pid:e.pointerId,c:B.center,d0:Math.max(1e-4,d0),a0:Math.atan2(q0[1]-B.center[1],q0[0]-B.center[0]),s0:S.scale,r0:S.rot};
+    if(drag.type==='box') noClipOnce(); return; }
   if(t.classList.contains('mh')||t.classList.contains('ph')){ e.preventDefault(); cap(stage,e); drag={type:t.classList.contains('mh')?'mesh':'polypt',i:+t.dataset.i,pid:e.pointerId}; return; }
   if(S.disp&&S.polyEdit&&!t.classList.contains('h')){ S.poly.push(toRef(norm(e))); buildClip(); updClipUI(); save(); return; }
   if(S.disp&&S.pick&&!t.classList.contains('h')){ const mode=S.pick; S.pick=false; stage.classList.remove('picking'); if(mode==='fit') autoFitAt(norm(e)); else pickObject(norm(e),mode==='add'); return; }
   if(!S.disp||t.classList.contains('h')||t.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); cap(stage,e);
   if(ptrs.size===1) drag={type:'pan',last:norm(e)}; else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; drag={type:'pinch',d:Math.max(.01,Math.hypot(a[0]-b[0],a[1]-b[1])),ang:Math.atan2(b[1]-a[1],b[0]-a[0]),s:S.scale,r:S.rot}; } });
+stage.addEventListener('pointermove',e=>{ if(!drag||(drag.type!=='box'&&drag.type!=='rot')||e.pointerId!==drag.pid) return; const q=toAsp(norm(e)); if(!q) return;
+  const dx=q[0]-drag.c[0], dy=q[1]-drag.c[1];
+  if(drag.type==='box'){ const ns=drag.s0*Math.hypot(dx,dy)/drag.d0; if(fin(ns)) S.scale=Math.max(.05,Math.min(20,ns)); }
+  else { const nr=wrap(drag.r0+(Math.atan2(dy,dx)-drag.a0)*180/Math.PI); if(fin(nr)) S.rot=Math.abs(nr)<2?0:nr; }   // gần 0° thì hút về thẳng
+  syncUI(); });
 stage.addEventListener('pointermove',e=>{ if(!drag||(drag.type!=='mesh'&&drag.type!=='polypt')||e.pointerId!==drag.pid) return; const r=toRef(norm(e));
   if(drag.type==='mesh'){ const Hi=inv(sq2q(S.ref)||I3); if(Hi){ const u=ap(Hi,r[0],r[1]); S.mesh[drag.i]=[Math.max(-.5,Math.min(1.5,u[0])),Math.max(-.5,Math.min(1.5,u[1]))]; } }
   else { S.poly[drag.i]=r; buildClip(); } });
 stage.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)||!drag||drag.type==='corner') return; const p=norm(e); ptrs.set(e.pointerId,p);
   if(drag.type==='pan'&&ptrs.size===1){ if(S.drag==='quad'){ const a=toRef(drag.last), b=toRef(p); S.ref=S.ref.map(q=>[q[0]+b[0]-a[0],q[1]+b[1]-a[1]]); filt.forEach(f=>f.reset()); }
       else { const a=toRegion(drag.last), b=toRegion(p); if(a&&b){ S.off=[clampO(S.off[0]+b[0]-a[0]),clampO(S.off[1]+b[1]-a[1])]; syncUI(); } } drag.last=p; }
-  else if(drag.type==='pinch'&&ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
-      const ns=drag.s*Math.max(.01,d)/drag.d, nr=wrap(drag.r+(ang-drag.ang)*180/Math.PI); if(fin(ns)) S.scale=Math.max(.1,Math.min(4,ns)); if(fin(nr)) S.rot=nr; syncUI(); } });
-const endPtr=e=>{ ptrs.delete(e.pointerId); if(drag&&(drag.type==='mesh'||drag.type==='polypt')){ if(e.pointerId===drag.pid){ drag=null; save(); } return; } if(drag&&drag.type!=='corner'){ if(ptrs.size===1){ drag={type:'pan',last:[...ptrs.values()][0]}; } else if(!ptrs.size){ drag=null; save(); } } };
+  else if(drag.type==='pinch'&&ptrs.size===2){ if(S.edit==='plane') return; const [a,b]=[...ptrs.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+      const ns=drag.s*Math.max(.01,d)/drag.d, nr=wrap(drag.r+(ang-drag.ang)*180/Math.PI); if(fin(ns)) S.scale=Math.max(.05,Math.min(20,ns)); if(fin(nr)) S.rot=nr; syncUI(); } });
+const endPtr=e=>{ ptrs.delete(e.pointerId); if(drag&&['mesh','polypt','box','rot'].includes(drag.type)){ if(e.pointerId===drag.pid){ drag=null; save(); } return; } if(drag&&drag.type!=='corner'){ if(ptrs.size===1){ drag={type:'pan',last:[...ptrs.values()][0]}; } else if(!ptrs.size){ drag=null; save(); } } };
 stage.addEventListener('pointerup',endPtr); stage.addEventListener('pointercancel',endPtr);
-stage.addEventListener('wheel',e=>{ if(!S.disp) return; e.preventDefault(); S.scale=Math.max(.1,Math.min(4,S.scale*Math.exp(-e.deltaY*.0015))); syncUI(); save(); },{passive:false});
-const clampO=v=>Math.max(-1,Math.min(1,v)), wrap=a=>((a+540)%360)-180;
+stage.addEventListener('wheel',e=>{ if(!S.disp) return; e.preventDefault(); S.scale=Math.max(.05,Math.min(20,S.scale*Math.exp(-e.deltaY*.0015))); syncUI(); save(); },{passive:false});
+const clampO=v=>Math.max(-3,Math.min(3,v)), wrap=a=>((a+540)%360)-180;
+/* ===== Chế độ chỉnh: Ảnh (khung sticker) / Mặt phẳng (4 góc phối cảnh) / Lưới ===== */
+function setEdit(m){ if(m==='mesh'&&!S.meshOn) m='img'; S.edit=m; S.drag=m==='plane'?'quad':'img'; stage.classList.remove('ed-img','ed-plane','ed-mesh'); stage.classList.add('ed-'+m);
+  document.querySelectorAll('#editBar button').forEach(b=>b.classList.toggle('on',b.dataset.ed===m)); $('edMesh').hidden=!S.meshOn; }
+document.querySelectorAll('#editBar button').forEach(b=>{ b.addEventListener('pointerdown',e=>e.stopPropagation()); b.onclick=e=>{ e.stopPropagation(); setEdit(b.dataset.ed); }; });
+const toAsp=p=>{ const r=toRegion(p); if(!r||!fin(r[0])||!fin(r[1])) return null; return [(r[0]-.5)*regionAspect(),r[1]-.5]; };
+function imgBox(){ // 4 góc ảnh (TL,TR,BR,BL), tâm, nút xoay — trong không gian vùng (rộng A × cao 1) rồi ra màn hình
+  const A=regionAspect(), sz=fitSize(), hw=sz[0]*S.scale/2, hh=sz[1]*S.scale/2, a=S.rot*Math.PI/180, c=Math.cos(a), sn=Math.sin(a), cx=S.off[0]*A, cy=S.off[1];
+  const P=(x,y)=>[cx+c*x-sn*y, cy+sn*x+c*y], toS=q=>{ const H=sq2q(S.disp); if(!H) return null; const r=ap(H,q[0]/A+.5,q[1]+.5); return [r[0],r[1]]; };
+  const k=[P(-hw,-hh),P(hw,-hh),P(hw,hh),P(-hw,hh)], top=P(0,-hh), rot=P(0,-hh-Math.max(.06,hh*.25)), bot=P(0,hh);
+  return {A,hw,hh,center:[cx,cy],asp:k,scr:k.map(toS),top:toS(top),rot:toS(rot),bot:toS(bot)}; }
+function sizeText(){ const A=regionAspect(), sz=fitSize(), fw=sz[0]*S.scale/A, fh=sz[1]*S.scale;   // phần của chiều rộng / cao khung
+  if(S.aspMode==='real'&&S.realW>0&&S.realH>0){ const w=fw*S.realW, h=fh*S.realH; return {txt:`${w.toFixed(w<100?1:0)} × ${h.toFixed(h<100?1:0)} cm`,w,h}; }
+  return {txt:`${Math.round(fw*100)}% × ${Math.round(fh*100)}% khung`}; }
+function noClipOnce(){ if(S.clip){ S.clip=false; syncUI(); if(!S.clipTold){ S.clipTold=true; toast('Đã tắt “Cắt theo khung” để ảnh có thể to hơn khung mặt phẳng.'); } } }
+$('imgWcm').oninput=e=>{ const v=+e.target.value; if(!(v>0)||!(S.realW>0)) return; const A=regionAspect(), sz=fitSize(); S.scale=Math.max(.05,Math.min(20,v*A/(S.realW*sz[0]))); noClipOnce(); syncUI(); save(); };
 
 /* ================= Bảng điều khiển ================= */
 const sliders={scale:['oScale',v=>v+'%'],rot:['oRot',v=>v+'°'],offX:['oOffX',v=>v],offY:['oOffY',v=>v],opa:['oOpa',v=>v+'%'],sens:['oSens',v=>v],detail:['oDetail',v=>v],thick:['oThick',v=>v],gridN:['oGridN',v=>v],kbps:['oKbps',v=>v+' Mb']};
@@ -693,7 +736,9 @@ function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textCont
   $('chkMesh').checked=S.meshOn; $('meshN').value=S.meshN; $('clipMode').value=S.clipMode; $('objTol').value=S.objTol; $('oObjTol').textContent=S.objTol; updClipUI();
   $('chkSnap').checked=S.snap; $('aspMode').value=S.aspMode; $('realRow').hidden=S.aspMode!=='real'; $('realW').value=S.realW||''; $('realH').value=S.realH||'';
   $('fit').value=S.fit; $('chkClip').checked=S.clip; $('chkHandles').checked=S.handles; $('chkSeg').checked=S.segOn; $('segModel').value=S.segModel; $('chkDiff').checked=S.diffOn; $('chkAuto').checked=S.auto; $('chkMask').checked=S.showMask; $('occStyle').value=S.occStyle;
-  document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; document.querySelector(`input[name=drag][value=${S.drag}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); }
+  document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); setEdit(S.edit);
+  const real=S.aspMode==='real'&&S.realW>0&&S.realH>0; $('cmRow').hidden=!real; if(real){ const t=sizeText(); if(document.activeElement!==$('imgWcm')) $('imgWcm').value=t.w.toFixed(1); $('imgHcm').textContent=t.h.toFixed(1); }
+  $('cmHint').innerHTML=real?'Gõ chiều rộng mong muốn, chiều cao tự tính theo tỉ lệ ảnh.':'Muốn đặt đúng kích thước thật (cm): ở mục 3 chọn <b>Tỉ lệ thật: nhập kích thước vùng</b> và nhập kích thước của khung mặt phẳng.'; }
 for(const id of Object.keys(sliders)) $(id).addEventListener('input',e=>{ const v=+e.target.value; $(sliders[id][0]).textContent=sliders[id][1](v);
   setters[id](v); save(); });
 $('style').onchange=e=>{ S.style=e.target.value; save(); };
@@ -713,7 +758,7 @@ $('chkDiff').onchange=e=>{ S.diffOn=e.target.checked; save(); };
 $('chkAuto').onchange=e=>{ S.auto=e.target.checked; save(); };
 $('chkMask').onchange=e=>{ S.showMask=e.target.checked; };
 $('btnBg').onclick=()=>{ if(!S.vw) return toast('Chưa có nguồn hình.'); S.bgPending=true; S.diffOn=true; syncUI(); toast('Đã chụp nền. Vùng phải đang trống lúc bấm.'); };
-document.querySelectorAll('input[name=drag]').forEach(r=>r.onchange=e=>{ S.drag=e.target.value; save(); });
+
 document.querySelectorAll('input[name=mode]').forEach(r=>r.onchange=e=>{ if(S.locked) unlock(); S.mode=e.target.value; updLock(); save(); if(S.mode==='move') loadCV().catch(()=>toast('Không tải được OpenCV (cần internet).')); });
 $('btnResetQuad').onclick=()=>{ if(S.locked) unlock(); S.ref=[[.3,.3],[.7,.3],[.7,.7],[.3,.7]]; filt.forEach(f=>f.reset()); S.bgReady=false; $('bgState').textContent='Chưa có nền'; save(); };
 $('btnCenter').onclick=()=>{ S.scale=1; S.rot=0; S.off=[0,0]; syncUI(); save(); };
@@ -721,7 +766,7 @@ $('chkSnap').onchange=e=>{ S.snap=e.target.checked; if(S.snap) loadCV().catch(()
 $('aspMode').onchange=e=>{ S.aspMode=e.target.value; syncUI(); save(); };
 for(const k of ['realW','realH']) $(k).oninput=e=>{ S[k]=Math.max(0,+e.target.value||0); save(); };
 $('btnDetect').onclick=detectQuad;
-$('chkMesh').onchange=e=>{ S.meshOn=e.target.checked; if(!S.mesh||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN); syncUI(); save(); };
+$('chkMesh').onchange=e=>{ S.meshOn=e.target.checked; if(!S.mesh||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN); if(S.meshOn) S.edit='mesh'; else if(S.edit==='mesh') S.edit='img'; syncUI(); save(); };
 $('meshN').onchange=e=>{ S.meshN=+e.target.value; S.mesh=meshGrid(S.meshN); save(); toast('Đã đổi cỡ lưới (lưới được làm phẳng lại).'); };
 $('btnMeshReset').onclick=()=>{ S.mesh=meshGrid(S.meshN); save(); };
 $('clipMode').onchange=e=>{ S.clipMode=e.target.value; S.polyEdit=false; S.pick=false; stage.classList.remove('picking'); buildClip(); syncUI(); save(); };
@@ -1090,7 +1135,7 @@ if(VIEW){ startViewer(VIEW); }
 else {
   syncUI(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
 }
-window.__app={S,PJ,DB,sanitize,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
+window.__app={S,PJ,DB,sanitize,imgBox,setEdit,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
 
 }
 </script>

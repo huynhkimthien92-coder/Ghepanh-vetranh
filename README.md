@@ -50,7 +50,12 @@ Mỗi **dự án** lưu riêng: ảnh mẫu, khung 4 góc, lưới nắn cong, v
    - **Chỉ cho mẫu hiện trên vật / vùng tự do**:
      - *Chỉ trong vùng khoanh tay*: bấm **Bắt đầu khoanh**, chạm lần lượt quanh viền (kéo chấm cam để sửa), xong bấm **Xong**.
      - *Chỉ trên vật chạm chọn*: bấm **Chạm chọn vật** rồi chạm vào vật (ví dụ tượng chưa sơn). App tự tách vùng cùng màu với điểm chạm. Còn hụt chỗ nào thì **Chạm thêm vùng**; lan quá thì giảm **Độ rộng màu**.
-4. **Thu phóng cho vừa**: chọn *Vừa khung / Phủ kín / Kéo giãn*, rồi chỉnh *Thu phóng, Xoay, Lệch ngang/dọc, Độ đậm*. Cũng dùng được: lăn chuột hoặc chụm 2 ngón để phóng/xoay, kéo bên trong vùng để dời ảnh (chuyển sang “dời cả vùng” để dời luôn khung).
+4. **Chỉnh ảnh như sticker**: thanh nhỏ dưới khung camera có 3 chế độ.
+   - **Ảnh** (mặc định): kéo **ô vuông ở góc ảnh** để phóng to/thu nhỏ (giữ tỉ lệ), kéo **nút tròn** để xoay (gần 0° tự hút về thẳng), kéo bên trong để dời, chụm 2 ngón để phóng/xoay. Ảnh luôn nằm đúng phối cảnh của tường, và nhãn dưới ảnh cho biết kích thước.
+     - **Đúng kích thước thật**: ở mục 3 chọn *Tỉ lệ thật: nhập kích thước vùng*, nhập kích thước khung mặt phẳng (ví dụ khung băng keo 200 × 150 cm), rồi gõ **chiều rộng ảnh mong muốn (cm)** ở mục 4, chiều cao tự tính.
+   - **Mặt phẳng**: chỉ hiện 4 chấm góc. Dùng để khớp một hình chữ nhật thật trên tường, giúp app biết phối cảnh. Kéo bên trong để dời cả khung.
+   - **Lưới**: chỉ hiện khi bật lưới nắn cong. Trên tường phẳng thì tắt lưới (hoặc bấm *Làm phẳng lại*) cho gọn.
+   Ngoài ra vẫn có các thanh trượt: chọn *Vừa khung / Phủ kín / Kéo giãn*, rồi chỉnh *Thu phóng, Xoay, Lệch ngang/dọc, Độ đậm*. Cũng dùng được: lăn chuột hoặc chụm 2 ngón để phóng/xoay, kéo bên trong vùng để dời ảnh (chuyển sang “dời cả vùng” để dời luôn khung).
 5. **Chụp nền trống**: bấm khi vùng đặt ảnh **không có ai/vật gì đứng trước**.
 6. Chọn **kiểu camera**:
    - *Cố định (chân máy)*: vùng đứng yên tuyệt đối trên khung hình, nên không bao giờ bị trôi hay mất.
