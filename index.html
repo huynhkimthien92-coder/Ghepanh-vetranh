@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Ghép ảnh vào camera</title>
 <style>
 /* VOICE: công cụ quay phim — gọn, kỹ thuật, khung ngắm là trung tâm
@@ -216,6 +216,7 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
 <script>
 {
 const $ = id => document.getElementById(id);
+const cap=(el,e)=>{ try{ el.setPointerCapture(e.pointerId); }catch(_){ } };  // iPhone có thể đã huỷ ngón tay trước khi kịp giữ
 const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
 const CV_URL = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js';
 const MODELS = {
@@ -242,7 +243,7 @@ const area = q => { let s=0; for(let i=0;i<4;i++){ const a=q[i],b=q[(i+1)%4]; s+
 /* ================= Bộ lọc One-Euro chống rung góc ================= */
 class OneEuro{ constructor(mc=1.2,beta=0.03,dc=1){this.mc=mc;this.beta=beta;this.dc=dc;this.x=null;this.dx=0;this.t=0;}
   a(c,dt){const r=2*Math.PI*c*dt;return r/(r+1);}
-  f(x,t){ if(this.x===null){this.x=x;this.t=t;return x;} const dt=Math.max(1e-3,(t-this.t)/1000); this.t=t;
+  f(x,t){ if(!isFinite(x)) return this.x??x; if(this.x===null||!isFinite(this.x)){this.x=x;this.dx=0;this.t=t;return x;} const dt=Math.max(1e-3,(t-this.t)/1000); this.t=t;
     const dx=(x-this.x)/dt; this.dx+=this.a(this.dc,dt)*(dx-this.dx); const c=this.mc+this.beta*Math.abs(this.dx); this.x+=this.a(c,dt)*(x-this.x); return this.x; }
   reset(){this.x=null;this.dx=0;} }
 
@@ -610,11 +611,25 @@ function lumGrid(){ const pw=proc.width, ph=proc.height, d=pctx.getImageData(0,0
 function updGain(){ const cur=lumGrid(), b=S.bgLum; if(cur.length!==b.length) return; const r=[];
   for(let k=0;k<cur.length;k++) if(cur[k]>12&&b[k]>12) r.push(cur[k]/b[k]);
   if(r.length<20) return; r.sort((a,c)=>a-c); const med=r[r.length>>1]; S.gain=Math.max(.35,Math.min(2.8,S.gain*.6+med*.4)); }
+/* Tự kiểm tra trạng thái: số lỗi (NaN/Infinity) hoặc khung suy biến -> khôi phục thay vì làm mất hình */
+const fin=v=>typeof v==='number'&&isFinite(v);
+const quadOK=q=>Array.isArray(q)&&q.length===4&&q.every(p=>Array.isArray(p)&&fin(p[0])&&fin(p[1])&&Math.abs(p[0])<5&&Math.abs(p[1])<5)&&area(q)>1e-5;
+function sanitize(){ let fixed=false; const D={scale:1,rot:0,opa:1};
+  if(!quadOK(S.ref)){ S.ref=[[.3,.3],[.7,.3],[.7,.7],[.3,.7]]; fixed=true; }
+  for(const k of ['scale','rot','opa']) if(!fin(S[k])){ S[k]=D[k]; fixed=true; }
+  S.scale=Math.max(.1,Math.min(4,S.scale));
+  if(!Array.isArray(S.off)||!fin(S.off[0])||!fin(S.off[1])){ S.off=[0,0]; fixed=true; }
+  if(S.mesh&&!(Array.isArray(S.mesh)&&S.mesh.length===S.meshN*S.meshN&&S.mesh.every(p=>Array.isArray(p)&&fin(p[0])&&fin(p[1])))){ S.mesh=meshGrid(S.meshN); fixed=true; }
+  if(Array.isArray(S.poly)) S.poly=S.poly.filter(p=>Array.isArray(p)&&fin(p[0])&&fin(p[1])); else S.poly=[];
+  if(fixed){ filt.forEach(f=>f.reset()); if(S.locked) unlock(); } return fixed; }
 function transforms(now){
+  if(sanitize()){ toast('Khung bị lỗi nên đã được khôi phục. Kéo lại 4 góc hoặc bấm “Tự khớp”.'); syncUI(); save(); }
   let R2C=I3;
   if(S.locked&&trk&&trk.state!=='idle'){ const pw=proc.width, ph=proc.height; R2C=mul(mul([1/pw,0,0,0,1/ph,0,0,0,1],trk.Hp),[pw,0,0,0,ph,0,0,0,1]); }
   let d=S.ref.map(p=>{ const q=ap(R2C,p[0],p[1]); return [q[0],q[1]]; });
   if(S.locked){ d=d.map((p,i)=>[filt[2*i].f(p[0]*S.vw,now)/S.vw, filt[2*i+1].f(p[1]*S.vh,now)/S.vh]); S.R2C=q2q(S.ref,d)||R2C; } else S.R2C=I3;
+  if(!quadOK(d)||!S.R2C.every(fin)){ // bám camera ra số lỗi -> giữ khung theo toạ độ tham chiếu, cho bộ bám tìm lại
+    if(trk&&S.locked) trk.state='lost'; S.R2C=I3; d=S.ref.map(p=>p.slice()); filt.forEach(f=>f.reset()); }
   S.disp=d; S.C2R=inv(S.R2C)||I3; const H=sq2q(d); S.Hinv=H?inv(H):null;
 }
 requestAnimationFrame(frame);
@@ -642,19 +657,19 @@ function overlay(){ if(!S.disp||!S.handles) return; const w=ov.clientWidth, h=ov
   if(S.clipMode==='poly'){ ensureH(phs,S.poly.length,'ph'); const pts=S.poly.map(q=>{ const c=ap(S.R2C,q[0],q[1]); return [c[0]*w,c[1]*h]; });
     pts.forEach((c,i)=>{ phs[i].style.left=c[0]+'px'; phs[i].style.top=c[1]+'px'; }); clipPolyEl.setAttribute('points',pts.map(c=>c.join(',')).join(' ')); }
   else { ensureH(phs,0,'ph'); clipPolyEl.setAttribute('points',''); } }
-const norm = e => { const r=ov.getBoundingClientRect(); return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]; };
+const norm = e => { const r=ov.getBoundingClientRect(); if(!(r.width>1&&r.height>1)) return [.5,.5]; const x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height; return [fin(x)?x:.5,fin(y)?y:.5]; };
 const toRef = p => { const q=ap(S.C2R,p[0],p[1]); return [q[0],q[1]]; };
 const toRegion = p => { if(!S.Hinv) return null; const q=ap(S.Hinv,p[0],p[1]); return [q[0],q[1]]; };
 let drag=null; const ptrs=new Map();
-hs.forEach(el=>el.addEventListener('pointerdown',e=>{ if(S.snap&&!cv) loadCV().catch(()=>{}); e.preventDefault(); e.stopPropagation(); el.setPointerCapture(e.pointerId); drag={type:'corner',i:+el.dataset.i}; }));
+hs.forEach(el=>el.addEventListener('pointerdown',e=>{ if(S.snap&&!cv) loadCV().catch(()=>{}); e.preventDefault(); e.stopPropagation(); cap(el,e); drag={type:'corner',i:+el.dataset.i}; }));
 hs.forEach(el=>el.addEventListener('pointermove',e=>{ if(drag?.type!=='corner') return; const p=norm(e).map(v=>Math.max(-.2,Math.min(1.2,v))); S.ref[drag.i]=toRef(p); filt.forEach(f=>f.reset()); }));
 hs.forEach(el=>el.addEventListener('pointerup',()=>{ const i=drag?.i; drag=null; if(i!==undefined) snapCorner(i); save(); }));
 stage.addEventListener('pointerdown',e=>{ const t=e.target;
-  if(t.classList.contains('mh')||t.classList.contains('ph')){ e.preventDefault(); stage.setPointerCapture(e.pointerId); drag={type:t.classList.contains('mh')?'mesh':'polypt',i:+t.dataset.i,pid:e.pointerId}; return; }
+  if(t.classList.contains('mh')||t.classList.contains('ph')){ e.preventDefault(); cap(stage,e); drag={type:t.classList.contains('mh')?'mesh':'polypt',i:+t.dataset.i,pid:e.pointerId}; return; }
   if(S.disp&&S.polyEdit&&!t.classList.contains('h')){ S.poly.push(toRef(norm(e))); buildClip(); updClipUI(); save(); return; }
   if(S.disp&&S.pick&&!t.classList.contains('h')){ const mode=S.pick; S.pick=false; stage.classList.remove('picking'); if(mode==='fit') autoFitAt(norm(e)); else pickObject(norm(e),mode==='add'); return; }
-  if(!S.disp||t.classList.contains('h')||t.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); stage.setPointerCapture(e.pointerId);
-  if(ptrs.size===1) drag={type:'pan',last:norm(e)}; else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; drag={type:'pinch',d:Math.hypot(a[0]-b[0],a[1]-b[1]),ang:Math.atan2(b[1]-a[1],b[0]-a[0]),s:S.scale,r:S.rot}; } });
+  if(!S.disp||t.classList.contains('h')||t.closest('.hud')) return; ptrs.set(e.pointerId,norm(e)); cap(stage,e);
+  if(ptrs.size===1) drag={type:'pan',last:norm(e)}; else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; drag={type:'pinch',d:Math.max(.01,Math.hypot(a[0]-b[0],a[1]-b[1])),ang:Math.atan2(b[1]-a[1],b[0]-a[0]),s:S.scale,r:S.rot}; } });
 stage.addEventListener('pointermove',e=>{ if(!drag||(drag.type!=='mesh'&&drag.type!=='polypt')||e.pointerId!==drag.pid) return; const r=toRef(norm(e));
   if(drag.type==='mesh'){ const Hi=inv(sq2q(S.ref)||I3); if(Hi){ const u=ap(Hi,r[0],r[1]); S.mesh[drag.i]=[Math.max(-.5,Math.min(1.5,u[0])),Math.max(-.5,Math.min(1.5,u[1]))]; } }
   else { S.poly[drag.i]=r; buildClip(); } });
@@ -662,7 +677,7 @@ stage.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)||!drag||drag
   if(drag.type==='pan'&&ptrs.size===1){ if(S.drag==='quad'){ const a=toRef(drag.last), b=toRef(p); S.ref=S.ref.map(q=>[q[0]+b[0]-a[0],q[1]+b[1]-a[1]]); filt.forEach(f=>f.reset()); }
       else { const a=toRegion(drag.last), b=toRegion(p); if(a&&b){ S.off=[clampO(S.off[0]+b[0]-a[0]),clampO(S.off[1]+b[1]-a[1])]; syncUI(); } } drag.last=p; }
   else if(drag.type==='pinch'&&ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
-      S.scale=Math.max(.1,Math.min(4,drag.s*d/drag.d)); S.rot=wrap(drag.r+(ang-drag.ang)*180/Math.PI); syncUI(); } });
+      const ns=drag.s*Math.max(.01,d)/drag.d, nr=wrap(drag.r+(ang-drag.ang)*180/Math.PI); if(fin(ns)) S.scale=Math.max(.1,Math.min(4,ns)); if(fin(nr)) S.rot=nr; syncUI(); } });
 const endPtr=e=>{ ptrs.delete(e.pointerId); if(drag&&(drag.type==='mesh'||drag.type==='polypt')){ if(e.pointerId===drag.pid){ drag=null; save(); } return; } if(drag&&drag.type!=='corner'){ if(ptrs.size===1){ drag={type:'pan',last:[...ptrs.values()][0]}; } else if(!ptrs.size){ drag=null; save(); } } };
 stage.addEventListener('pointerup',endPtr); stage.addEventListener('pointercancel',endPtr);
 stage.addEventListener('wheel',e=>{ if(!S.disp) return; e.preventDefault(); S.scale=Math.max(.1,Math.min(4,S.scale*Math.exp(-e.deltaY*.0015))); syncUI(); save(); },{passive:false});
@@ -896,6 +911,10 @@ $('btnRec').onclick=()=>{ const b=$('btnRec');
   rec.onstop=()=>{ download(new Blob(chunks,{type:rec.mimeType}),`ghep-anh-${stamp()}.${rec.mimeType.includes('mp4')?'mp4':'webm'}`); rec=null; b.textContent='Quay video'; b.classList.remove('on'); };
   rec.start(1000); b.textContent='Dừng quay'; b.classList.add('on'); };
 $('btnFull').onclick=()=>{ document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen?.().catch(()=>{}); };
+addEventListener('error',e=>{ console.error(e.error||e.message); toast('Lỗi: '+(e.message||'không rõ')+'. App vẫn chạy tiếp.'); });
+addEventListener('unhandledrejection',e=>{ console.error(e.reason); toast('Lỗi: '+(e.reason?.message||e.reason)+'.'); });
+for(const g of ['gesturestart','gesturechange']) document.addEventListener(g,e=>{ if(!document.body.classList.contains('viewer-mode')) e.preventDefault(); },{passive:false});
+cvs.addEventListener('webglcontextlost',e=>{ e.preventDefault(); saveNow(); toast('Trình duyệt tạm thu hồi bộ nhớ đồ hoạ — đang tải lại app (dự án đã được lưu)…'); setTimeout(()=>location.reload(),1500); });
 addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')) return; if(e.key==='h'||e.key==='H'){ S.handles=!S.handles; syncUI(); } if(e.key==='f'||e.key==='F') $('btnFull').click(); });
 
 /* HUD & thông báo */
@@ -933,6 +952,7 @@ function renderProj(){ const sel=$('projSel'); sel.innerHTML=PJ.list.slice().sor
 async function openProject(rec){
   if(S.locked) unlock(); PJ.cur=rec; const st=rec.settings||{}; for(const k of PK) S[k]=clone(st[k]??DEF[k]);
   if(!Array.isArray(S.mesh)||S.mesh.length!==S.meshN*S.meshN) S.mesh=meshGrid(S.meshN);
+  if(sanitize()) setTimeout(()=>{ toast('Dự án có khung bị lỗi đã được khôi phục. Kéo lại 4 góc hoặc bấm “Tự khớp vào vật”.'); save(); },800);
   try{ localStorage.setItem('ghepanh.cur',rec.id); }catch(e){}
   S.polyEdit=false; S.pick=false; stage.classList.remove('picking'); filt.forEach(f=>f.reset()); det.list=[]; S.objImg=null; clearImage();
   if(S.objMask){ const im=new Image(); im.onload=()=>{ if(PJ.cur===rec){ S.objImg=im; buildClip(); updClipUI(); } }; im.src=S.objMask; }
@@ -1054,7 +1074,7 @@ function startViewer(code){
   $('vReset').onclick=()=>{ Z.z=fitRot(); Z.x=Z.y=0; apply(); };
   $('vFull').onclick=()=>{ document.fullscreenElement?document.exitFullscreen():$('viewer').requestFullscreen?.().catch(()=>{}); };
   const P=new Map(); let g=null;
-  vs.addEventListener('pointerdown',e=>{ vs.setPointerCapture(e.pointerId); P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
+  vs.addEventListener('pointerdown',e=>{ cap(vs,e); P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
     g = v.length===1?{x:e.clientX,y:e.clientY,ox:Z.x,oy:Z.y}:{d:Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]),z:Z.z,ox:Z.x,oy:Z.y,cx:(v[0][0]+v[1][0])/2,cy:(v[0][1]+v[1][1])/2}; });
   vs.addEventListener('pointermove',e=>{ if(!P.has(e.pointerId)||!g) return; P.set(e.pointerId,[e.clientX,e.clientY]); const v=[...P.values()];
     if(v.length===1&&g.x!==undefined){ Z.x=g.ox+e.clientX-g.x; Z.y=g.oy+e.clientY-g.y; }
@@ -1070,7 +1090,7 @@ if(VIEW){ startViewer(VIEW); }
 else {
   syncUI(); initProjects().catch(e=>{ console.error(e); toast('Lỗi mở dự án: '+e.message); });
 }
-window.__app={S,PJ,DB,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
+window.__app={S,PJ,DB,sanitize,openProject,pickObject,autoFitAt,buildClip,seg,NET,lock,unlock,setImage,onCmd,detectQuad,snapCorner,fitQuadToImage,regionAspect,trueAspect,get det(){return det;}};
 
 }
 </script>
