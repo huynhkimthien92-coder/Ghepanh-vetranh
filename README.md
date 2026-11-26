@@ -116,13 +116,15 @@ Cài đặt và ảnh được lưu lại trong trình duyệt, mở lại trang
 | Tự khớp vào vật: tấm xốp trên sàn gạch hoa, xoay 25° + nhìn xiên | viền lệch trung bình ≈ 2 px, chạy 0,4 s |
 | Tự khớp khi tấm xốp bị lật ngang so với bản vẽ | tự nhận ra và lật ảnh, viền lệch ≈ 2 px |
 | Tự khớp khi tấm xốp cắt méo (không giống hệt bản vẽ) | tự uốn lưới, viền lệch còn ≈ 1,4 px (trước khi uốn 4,2 px) |
+| Camera tối đi 40% + rung 1 px + tay thò vào | bản cũ chỉ còn 15% nét mẫu; bản mới giữ 100% nét ở chỗ không che, ẩn đúng 99% trên tay |
 | Dự án: tạo mới, quay lại, tải lại trang, xuất/nhập file | khung, ảnh, cài đặt khôi phục đúng 100% |
 | Lưới nắn: bật lưới phẳng / kéo điểm giữa | phẳng thì giống hệt khi tắt; kéo điểm thì ảnh uốn theo đúng điểm |
 | Khoanh vùng / chạm chọn tấm bảng | ngoài vùng hiện hình camera; chọn vật đúng tấm bảng (25% khung), chừa phần người đứng chắn |
 | Tỉ lệ thật khi nhìn xiên (mô phỏng camera pinhole) | đúng 1,500 / 0,625 / 4,000, trong khi đo theo hình trên màn sai tới 35% |
 
 ## 6. Mẹo & giới hạn
-- **Camera tự đổi sáng** làm “so sánh nền” báo nhầm: bấm **Khoá sáng** (nếu camera hỗ trợ), giữ bật “Tự cập nhật nền”, hoặc chụp nền lại.
+- **Camera tự đổi sáng** (iPhone tự chỉnh phơi sáng khi tay/người vào khung): app **tự bù sáng** mỗi khung hình, HUD hiện “bù sáng ×…”. So sánh nền cũng chịu được camera rung/bám lệch khoảng 2 px. Nếu vẫn báo nhầm: chụp nền lại hoặc giảm Độ nhạy.
+- **Khi vẽ bằng tay:** chọn *Chỗ bị che: mẫu mờ đi* (mặc định), như vậy tay vẫn được nhận ra nhưng nét mẫu chỉ mờ đi trên tay chứ không mất, và bạn vẫn thấy nét ngay dưới đầu bút. Bấm **Chế độ vẽ tường** để tắt luôn so sánh nền, vì nét bút/sơn mới vẽ sẽ khác nền đã chụp và làm mất mẫu đúng chỗ vừa vẽ.
 - Vật che **cùng màu với nền** (áo trắng trước tường trắng) thì so sánh nền khó bắt, khi đó AI người sẽ đỡ phần này.
 - Chế độ cầm tay cần vùng hoặc xung quanh vùng có **hoạ tiết/cạnh**. Tường trơn tuyệt đối thì không có gì để bám, hãy dùng chân máy hoặc kéo vùng rộng ra.
 - Vật được đặt **cố định lâu** trước vùng sẽ tiếp tục được coi là vật che, bấm “Chụp nền trống” lại nếu muốn ảnh phủ lên nó.

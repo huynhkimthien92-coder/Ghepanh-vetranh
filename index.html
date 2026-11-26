@@ -171,13 +171,14 @@ h3.sub{font-size:13px;margin:12px 0 6px;color:var(--ink);font-weight:600}
 
     <section class="g"><h2>5 · Chống che khuất</h2>
       <div class="row"><button id="btnPaint">Chế độ vẽ tường</button></div>
-      <div class="hint">Khi tô lên tường, nét sơn mới làm tường khác với nền đã chụp. Nút này tắt “So sánh nền”, giữ AI người (tay, người vẫn hiện trước mẫu) và đổi sang nét viền.</div>
+      <div class="hint">Khi tô vẽ, nét sơn/bút mới làm bề mặt khác với nền đã chụp nên “So sánh nền” sẽ xoá mẫu đúng chỗ vừa vẽ. Nút này tắt so sánh nền, giữ AI nhận tay (tay hiện mờ dưới nét mẫu) và đổi sang nét viền.</div>
       <label class="ck"><input type="checkbox" id="chkSeg" checked>Nhận diện người bằng AI (hiện người đè lên ảnh)</label>
       <div class="row"><select id="segModel" aria-label="Mô hình"><option value="people">Người — nhanh</option><option value="objects">Người + vật phổ biến (xe, ghế, thú…) — chậm hơn</option></select></div>
       <label class="ck"><input type="checkbox" id="chkDiff" checked>So sánh với nền trống (mọi vật lạ)</label>
       <div class="row"><button id="btnBg">Chụp nền trống</button><span class="hint" id="bgState">Chưa có nền</span></div>
       <div class="sl"><span>Độ nhạy</span><input type="range" id="sens" min="1" max="100" value="55"><output id="oSens">55</output></div>
       <label class="ck"><input type="checkbox" id="chkAuto" checked>Tự cập nhật nền khi ánh sáng đổi dần</label>
+      <div class="row"><select id="occStyle" aria-label="Khi bị che"><option value="dim">Chỗ bị che: mẫu mờ đi (vẫn thấy nét trên tay — dễ vẽ)</option><option value="hide">Chỗ bị che: ẩn hẳn mẫu</option><option value="off">Không xử lý che — mẫu luôn nằm trên</option></select></div>
       <label class="ck"><input type="checkbox" id="chkMask">Tô đỏ vùng bị che (để chỉnh độ nhạy)</label>
       <div class="hint">Chụp nền khi vùng đặt ảnh đang trống. Nếu camera tự đổi sáng, bấm “Khoá sáng”.</div>
     </section>
@@ -255,6 +256,7 @@ const S = {
   bgReady:false, bgPending:false, mode:'fixed', locked:false,
   show:true, style:'img', line:'#ff2bd6', detail:40, thick:2, grid:false, gridN:10, blink:false,
   snap:true, aspMode:'auto', realW:0, realH:0,
+  occStyle:'dim', gain:1, bgLum:null,
   meshOn:false, meshN:4, mesh:null, clipMode:'none', poly:[], objMask:null, objTol:24, polyEdit:false, pick:false,
   kbps:5, code:'', sig:'', turnUrl:'', turnUser:'', turnPass:''
 };
@@ -271,8 +273,11 @@ float dif(vec3 a,vec3 b){float la=dot(a,vec3(.299,.587,.114)),lb=dot(b,vec3(.299
 bool inside(vec2 p){return p.x>=0.&&p.y>=0.&&p.x<=1.&&p.y<=1.;}`;
 const FS_DISP=COMMON+`
 uniform sampler2D uVid,uImg,uBg,uSeg,uEdge;uniform mat3 uHinv,uC2R;uniform vec2 uTx,uSize,uOff;uniform vec3 uLine;uniform float uStyle,uGrid;
-uniform float uA,uScale,uRot,uClip,uOpa,uSegOn,uDiffOn,uTh,uMask,uHas,uMesh,uClipOn;uniform sampler2D uMeshTex,uClipTex;
-float bgd(vec2 p){vec3 h=uC2R*vec3(p,1.);if(h.z<=0.)return 0.;vec2 q=h.xy/h.z;if(!inside(q))return 0.;return dif(texture2D(uVid,p).rgb,texture2D(uBg,q).rgb);}
+uniform float uA,uScale,uRot,uClip,uOpa,uSegOn,uDiffOn,uTh,uMask,uHas,uMesh,uClipOn,uGain,uOccK;uniform sampler2D uMeshTex,uClipTex;uniform vec2 uBx;
+// so với nền đã chụp: nhân hệ số bù sáng, và lấy sai khác NHỎ NHẤT khi xê dịch nền ±2 px (chịu được rung / bám lệch nhẹ)
+float bgd(vec2 p){vec3 h=uC2R*vec3(p,1.);if(h.z<=0.)return 0.;vec2 q=h.xy/h.z;if(!inside(q))return 0.;vec3 c=texture2D(uVid,p).rgb;vec2 o=uBx*2.;
+ float d=dif(c,texture2D(uBg,q).rgb*uGain);d=min(d,dif(c,texture2D(uBg,q+vec2(o.x,0.)).rgb*uGain));d=min(d,dif(c,texture2D(uBg,q-vec2(o.x,0.)).rgb*uGain));
+ d=min(d,dif(c,texture2D(uBg,q+vec2(0.,o.y)).rgb*uGain));d=min(d,dif(c,texture2D(uBg,q-vec2(0.,o.y)).rgb*uGain));return d;}
 void main(){vec2 p=vec2(vUV.x,1.-vUV.y);vec3 col=texture2D(uVid,p).rgb;
  if(uHas>.5){vec3 h=uHinv*vec3(p,1.);bool okp=h.z>0.;vec2 r=h.xy/max(abs(h.z),1e-9);
   if(uMesh>.5){vec4 t=floor(texture2D(uMeshTex,vUV)*255.+.5);float qu=t.r*256.+t.g,qv=t.b*256.+t.a;okp=qu>.5;r=(vec2(qu,qv)-1.)/65534.;}
@@ -284,19 +289,20 @@ void main(){vec2 p=vec2(vUV.x,1.-vUV.y);vec3 col=texture2D(uVid,p).rgb;
    float gr=0.;if(uGrid>.5){vec2 n=uSize/(max(uSize.x,uSize.y)/uGrid);vec2 g=abs(fract(iu*n+.5)-.5)/n*uSize;float w=.0035/uScale;
     gr=(1.-smoothstep(w*.5,w,min(g.x,g.y)))*step(0.,min(min(iu.x,1.-iu.x),min(iu.y,1.-iu.y))+w);}
    if(m>0.){vec4 ic=uStyle>.5?texture2D(uEdge,clamp(iu,0.,1.)):texture2D(uImg,clamp(iu,0.,1.));float occ=0.;
-    if(uSegOn>.5)occ=smoothstep(.3,.6,texture2D(uSeg,p).r);
+    if(uSegOn>.5){vec2 o3=uTx*3.;float sg=min(min(texture2D(uSeg,p).r,min(texture2D(uSeg,p+vec2(o3.x,0.)).r,texture2D(uSeg,p-vec2(o3.x,0.)).r)),min(texture2D(uSeg,p+vec2(0.,o3.y)).r,texture2D(uSeg,p-vec2(0.,o3.y)).r));
+     occ=smoothstep(.45,.7,sg);}   // co mask lại ~3px cho sát tay
     if(uDiffOn>.5){vec2 o=uTx*2.;float d=(bgd(p)*2.+bgd(p+vec2(o.x,0.))+bgd(p-vec2(o.x,0.))+bgd(p+vec2(0.,o.y))+bgd(p-vec2(0.,o.y)))/6.;
      occ=max(occ,smoothstep(uTh,uTh+.07,d));}
-    vec3 cc=mix(ic.rgb,uLine,gr);float a=max(ic.a,gr*.9)*uOpa*m*(1.-occ);col=mix(col,cc,a);
+    vec3 cc=mix(ic.rgb,uLine,gr);float a=max(ic.a,gr*.9)*uOpa*m*(1.-occ*uOccK);col=mix(col,cc,a);
     if(uMask>.5)col=mix(col,vec3(1.,.1,.1),occ*.55*m);}}}
  gl_FragColor=vec4(col,1.);}`;
 const FS_BG=COMMON+`
-uniform sampler2D uVid,uBg,uSeg;uniform mat3 uR2C;uniform float uRate,uTh,uSegOn,uInit;
+uniform sampler2D uVid,uBg,uSeg;uniform mat3 uR2C;uniform float uRate,uTh,uSegOn,uInit,uGain;
 void main(){vec2 q=vUV;vec4 old=texture2D(uBg,q);vec3 h=uR2C*vec3(q,1.);
  if(h.z<=0.){gl_FragColor=old;return;}vec2 c=h.xy/h.z;if(!inside(c)){gl_FragColor=old;return;}
  vec3 cur=texture2D(uVid,c).rgb;if(uInit>.5){gl_FragColor=vec4(cur,1.);return;}
- float occ=smoothstep(uTh*.6,uTh*.6+.05,dif(cur,old.rgb));if(uSegOn>.5)occ=max(occ,smoothstep(.2,.4,texture2D(uSeg,c).r));
- gl_FragColor=vec4(mix(old.rgb,cur,uRate*(1.-occ)),1.);}`;
+ float occ=smoothstep(uTh*.6,uTh*.6+.05,dif(cur,old.rgb*uGain));if(uSegOn>.5)occ=max(occ,smoothstep(.2,.4,texture2D(uSeg,c).r));
+ gl_FragColor=vec4(mix(old.rgb,clamp(cur/max(uGain,.05),0.,1.),uRate*(1.-occ)),1.);}`;
 function mkProg(fs,vs=VS,attrs=['aPos']){ const p=gl.createProgram(); for(const [t,src] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){ const s=gl.createShader(t); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); gl.attachShader(p,s);} attrs.forEach((a,i)=>gl.bindAttribLocation(p,i,a)); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const cache={}; return {p,u:n=>cache[n]??=gl.getUniformLocation(p,n)}; }
 const PD=mkProg(FS_DISP), PB=mkProg(FS_BG);
 // Lưới nắn: vẽ lưới tam giác, mỗi điểm ảnh ghi toạ độ (u,v) của vùng dạng 16-bit vào FBO
@@ -344,7 +350,7 @@ function bgPass(init){
   const src=bgIdx, dst=1-bgIdx; gl.useProgram(PB.p); gl.bindFramebuffer(gl.FRAMEBUFFER,FB[dst]); gl.viewport(0,0,bgW,bgH);
   bind(PB,'uVid',0,T.vid); bind(PB,'uBg',1,T.bg[src]); bind(PB,'uSeg',2,T.seg);
   gl.uniformMatrix3fv(PB.u('uR2C'),false,glm(S.R2C)); gl.uniform1f(PB.u('uRate'),.02); gl.uniform1f(PB.u('uTh'),th());
-  gl.uniform1f(PB.u('uSegOn'),S.segOn&&seg.ready?1:0); gl.uniform1f(PB.u('uInit'),init?1:0);
+  gl.uniform1f(PB.u('uSegOn'),S.segOn&&seg.ready?1:0); gl.uniform1f(PB.u('uInit'),init?1:0); gl.uniform1f(PB.u('uGain'),init?1:S.gain);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4); gl.bindFramebuffer(gl.FRAMEBUFFER,null); bgIdx=dst;
 }
 function fitSize(){ const A=regionAspect(), ia=S.imgA; if(S.fit==='stretch') return [A,1];
@@ -362,6 +368,7 @@ function displayPass(){
     bind(PD,'uEdge',4,T.edge); gl.uniform1f(PD.u('uStyle'),S.style==='edge'?1:0); gl.uniform1f(PD.u('uGrid'),S.grid?S.gridN:0);
     const lc=parseInt(S.line.slice(1),16); gl.uniform3f(PD.u('uLine'),(lc>>16&255)/255,(lc>>8&255)/255,(lc&255)/255);
     gl.uniform1f(PD.u('uMesh'),S.meshOn&&S.mesh?1:0); bind(PD,'uMeshTex',5,T.mesh); gl.uniform1f(PD.u('uClipOn'),clipActive()?1:0); bind(PD,'uClipTex',6,T.clip);
+    gl.uniform1f(PD.u('uGain'),S.gain); gl.uniform2f(PD.u('uBx'),1/bgW,1/bgH); gl.uniform1f(PD.u('uOccK'),S.occStyle==='hide'?1:S.occStyle==='dim'?.7:0);
     gl.uniform1f(PD.u('uDiffOn'),S.diffOn&&S.bgReady?1:0); gl.uniform1f(PD.u('uTh'),th()); gl.uniform1f(PD.u('uMask'),S.showMask?1:0); }
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
@@ -580,17 +587,29 @@ function frame(now){
   if(fresh){
     gl.bindTexture(gl.TEXTURE_2D,T.vid); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,vid);
     const segOK=S.segOn&&seg.ready, trkOn=S.mode==='move'&&S.locked&&trk&&trk.state!=='idle';
-    if(segOK||trkOn) pctx.drawImage(vid,0,0,proc.width,proc.height);
+    const gainOn=S.diffOn&&(S.bgReady||S.bgPending);
+    if(segOK||trkOn||gainOn) pctx.drawImage(vid,0,0,proc.width,proc.height);
     if(segOK) runSeg();
     if(trkOn){ const t0=performance.now(); const g=grayFrame(); trk.update(g,occForTrack(),refPx()); g.delete(); S.trkMs=(S.trkMs||0)*.9+(performance.now()-t0)*.1; }
     const tick=now-lastT; lastT=now; fps=fps*.9+(1000/Math.max(1,tick))*.1;
   }
   transforms(now);
+  if(fresh&&S.diffOn){ if(S.bgPending){ S.bgLum=lumGrid(); S.gain=1; } else if(S.bgReady&&S.bgLum) updGain(); }
   if(fresh){ if(S.bgPending){ bgPass(true); S.bgReady=true; S.bgPending=false; $('bgState').textContent='Đã có nền'; }
     else if(S.bgReady&&S.auto&&S.diffOn&&(!S.locked||trk?.state==='track')) bgPass(false); }
   if(S.meshOn&&S.mesh&&S.img&&S.show) meshPass();
   displayPass(); overlay(); hud();
 }
+/* Bù sáng: camera điện thoại tự đổi phơi sáng khi tay/người vào khung -> so độ sáng hiện tại với lúc chụp nền
+   trên lưới 48×N điểm (toạ độ tham chiếu), lấy trung vị tỉ số ở các điểm không bị người che. */
+const GX=48;
+function lumGrid(){ const pw=proc.width, ph=proc.height, d=pctx.getImageData(0,0,pw,ph).data, GY=Math.max(8,Math.round(GX*ph/pw)), o=new Float32Array(GX*GY), occ=occForTrack();
+  for(let j=0;j<GY;j++) for(let i=0;i<GX;i++){ const c=ap(S.R2C,(i+.5)/GX,(j+.5)/GY), x=Math.floor(c[0]*pw), y=Math.floor(c[1]*ph); let v=-1;
+    if(c[2]>0&&x>0&&y>0&&x<pw-1&&y<ph-1&&!(occ&&occ[y*pw+x]>OCC_T)){ let sum=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const k=4*((y+dy)*pw+x+dx); sum+=.299*d[k]+.587*d[k+1]+.114*d[k+2]; } v=sum/9; }
+    o[j*GX+i]=v; } return o; }
+function updGain(){ const cur=lumGrid(), b=S.bgLum; if(cur.length!==b.length) return; const r=[];
+  for(let k=0;k<cur.length;k++) if(cur[k]>12&&b[k]>12) r.push(cur[k]/b[k]);
+  if(r.length<20) return; r.sort((a,c)=>a-c); const med=r[r.length>>1]; S.gain=Math.max(.35,Math.min(2.8,S.gain*.6+med*.4)); }
 function transforms(now){
   let R2C=I3;
   if(S.locked&&trk&&trk.state!=='idle'){ const pw=proc.width, ph=proc.height; R2C=mul(mul([1/pw,0,0,0,1/ph,0,0,0,1],trk.Hp),[pw,0,0,0,ph,0,0,0,1]); }
@@ -658,7 +677,7 @@ function syncUI(){ const set=(id,v)=>{ $(id).value=v; $(sliders[id][0]).textCont
   for(const k of ['sig','turnUrl','turnUser','turnPass']) $(k).value=S[k]||'';
   $('chkMesh').checked=S.meshOn; $('meshN').value=S.meshN; $('clipMode').value=S.clipMode; $('objTol').value=S.objTol; $('oObjTol').textContent=S.objTol; updClipUI();
   $('chkSnap').checked=S.snap; $('aspMode').value=S.aspMode; $('realRow').hidden=S.aspMode!=='real'; $('realW').value=S.realW||''; $('realH').value=S.realH||'';
-  $('fit').value=S.fit; $('chkClip').checked=S.clip; $('chkHandles').checked=S.handles; $('chkSeg').checked=S.segOn; $('segModel').value=S.segModel; $('chkDiff').checked=S.diffOn; $('chkAuto').checked=S.auto; $('chkMask').checked=S.showMask;
+  $('fit').value=S.fit; $('chkClip').checked=S.clip; $('chkHandles').checked=S.handles; $('chkSeg').checked=S.segOn; $('segModel').value=S.segModel; $('chkDiff').checked=S.diffOn; $('chkAuto').checked=S.auto; $('chkMask').checked=S.showMask; $('occStyle').value=S.occStyle;
   document.querySelector(`input[name=mode][value=${S.mode}]`).checked=true; document.querySelector(`input[name=drag][value=${S.drag}]`).checked=true; stage.classList.toggle('hidehandles',!S.handles); }
 for(const id of Object.keys(sliders)) $(id).addEventListener('input',e=>{ const v=+e.target.value; $(sliders[id][0]).textContent=sliders[id][1](v);
   setters[id](v); save(); });
@@ -667,7 +686,8 @@ $('lineCol').oninput=e=>{ S.line=e.target.value; edgeSoon(); save(); };
 $('chkGrid').onchange=e=>{ S.grid=e.target.checked; save(); };
 $('chkBlink').onchange=e=>{ S.blink=e.target.checked; save(); };
 $('btnShow').onclick=()=>{ S.show=!S.show; syncUI(); save(); };
-$('btnPaint').onclick=()=>{ S.diffOn=false; S.segOn=true; S.style='edge'; if(S.opa<.5) S.opa=.9; S.show=true; loadSeg(); syncUI(); save(); toast('Chế độ vẽ tường: nét viền, AI người bật, so sánh nền tắt.'); };
+$('btnPaint').onclick=()=>{ S.diffOn=false; S.segOn=true; S.occStyle='dim'; S.style='edge'; if(S.opa<.5) S.opa=.9; S.show=true; loadSeg(); syncUI(); save(); toast('Chế độ vẽ: nét viền, tay hiện mờ dưới nét mẫu, tắt so sánh nền (nét sơn/bút mới sẽ không làm mất mẫu).'); };
+$('occStyle').onchange=e=>{ S.occStyle=e.target.value; save(); };
 for(const k of ['sig','turnUrl','turnUser','turnPass']) $(k).onchange=e=>{ S[k]=e.target.value.trim(); save(); if(NET.peer) toast('Bấm Dừng phát rồi Phát lại để dùng cấu hình mới.'); };
 $('fit').onchange=e=>{ S.fit=e.target.value; save(); };
 $('chkClip').onchange=e=>{ S.clip=e.target.checked; save(); };
@@ -883,7 +903,7 @@ let toastT=0, pillTrk=false; function toast(m){ setPill(m,'warn'); toastT=perfor
 function setPill(m,c=''){ const p=$('pill'); p.hidden=!m; p.textContent=m; p.className='pill '+c; }
 function hud(){ const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
   if(S.segOn) L.push(seg.ready?`AI người: ${seg.ms.toFixed(0)} ms`:'AI người: đang tải…');
-  if(S.diffOn) L.push(S.bgReady?'So sánh nền: bật':'So sánh nền: chưa chụp nền');
+  if(S.diffOn) L.push(S.bgReady?`So sánh nền: bật · bù sáng ×${S.gain.toFixed(2)}`:'So sánh nền: chưa chụp nền');
   let pill='';
   if(S.mode==='move'&&S.locked&&trk){ L.push(`Bám: ${trk.cur.length/2|0} điểm · khớp ${(trk.ratio*100|0)}% · ${(S.trkMs||0).toFixed(0)} ms`);
     pill = trk.state==='track'?['Đang bám vùng','ok']:trk.state==='hold'?['Bị che — giữ nguyên vị trí','warn']:['Mất dấu — đang tìm lại (vẫn giữ vị trí cũ)','bad']; }
@@ -894,7 +914,7 @@ function hud(){ const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
 /* Lưu / khôi phục */
 /* ================= Dự án (IndexedDB): mỗi dự án = ảnh + khung + lưới + vùng khoanh + cài đặt ================= */
 const GK=['handles','drag','snap','kbps','code','sig','turnUrl','turnUser','turnPass'];   // cài đặt chung của máy
-const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol'];
+const PK=['ref','fit','scale','rot','off','opa','clip','segOn','segModel','diffOn','sens','auto','mode','show','style','line','detail','thick','grid','gridN','blink','aspMode','realW','realH','meshOn','meshN','mesh','clipMode','poly','objMask','objTol','occStyle'];
 const clone=v=>v===undefined?null:JSON.parse(JSON.stringify(v));
 const pick=(o,ks)=>{ const r={}; for(const k of ks) r[k]=clone(o[k]); return r; };
 S.mesh=meshGrid(S.meshN); const DEF=pick(S,PK);
