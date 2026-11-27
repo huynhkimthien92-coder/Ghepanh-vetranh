@@ -154,7 +154,7 @@ details.proj>summary{list-style:none;min-height:44px;display:flex;align-items:ce
     <div class="empty" id="empty"><div><b>Chưa có hình camera</b>Bấm “Bật camera” ở bước 1.</div></div>
     <div class="hud" id="hud"></div>
     <div class="pill" id="pill" hidden></div>
-    <div class="editbar" id="editBar" role="group" aria-label="Chế độ chỉnh"><button data-ed="img" class="on">Ảnh</button><button data-ed="plane">Mặt phẳng</button><button data-ed="mesh" id="edMesh" hidden>Lưới</button></div>
+    <div class="editbar" id="editBar" role="group" aria-label="Chế độ chỉnh"><button data-ed="img" class="on">Ảnh</button><button data-ed="plane">Mặt phẳng</button><button data-ed="mesh" id="edMesh" hidden>Lưới</button><button id="edReset" hidden title="Đặt khung về giữa màn hình">Đặt lại</button></div>
   </section>
 
   <aside class="panel">
@@ -626,9 +626,9 @@ class Tracker{
     this.orb=new cv.ORB(1000); this.refKp=new cv.KeyPointVector(); this.refDesc=new cv.Mat(); this.orb.detectAndCompute(g,m,this.refKp,this.refDesc); m.delete();
     this.bf=new cv.BFMatcher(cv.NORM_HAMMING,false); this.Hp=I3.slice(); this.lastQuad=quad.map(p=>p.slice()); this.bad=0; this.inl=this.cur.length/2; this.ratio=1;
     this.state=this.cur.length/2>=12?'track':'lost'; return this.cur.length/2; }
-  sane(h,perFrame){ const q=this.proj(this.quadRef,h); let sg=0;
+  sane(h,perFrame,strict){ const q=this.proj(this.quadRef,h); let sg=0;
     for(let i=0;i<4;i++){ const a=q[i],b=q[(i+1)%4],c=q[(i+2)%4]; if(!(a[2]>0)) return false; const cr=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]); if(Math.abs(cr)<1e-6) return false; const s=Math.sign(cr); if(!sg) sg=s; else if(s!==sg) return false; }
-    const A=area(q), A0=area(this.quadRef); if(A<A0/400||A>A0*400) return false;   // cho phép đưa máy lại gần / ra xa tới ~20 lần
+    const A=area(q), A0=area(this.quadRef), lim=strict?25:400; if(A<A0/lim||A>A0*lim) return false;   // bám liên tục: tới ~20 lần; tìm lại từ đầu: chỉ ~5 lần (tránh khớp nhầm cảnh khác)
     if(perFrame){ const L=this.lastQuad, A1=area(L), lim=1.35+.6*Math.min(4,this.dtGap||1); if(A>A1*lim*lim||A<A1/(lim*lim)) return false; const dg=Math.hypot(L[0][0]-L[2][0],L[0][1]-L[2][1]);
       for(let i=0;i<4;i++) if(Math.hypot(q[i][0]-L[i][0],q[i][1]-L[i][1])>.6*dg*Math.min(4,this.dtGap||1)+8) return false; }
     return true; }
@@ -680,7 +680,7 @@ class Tracker{
     if(ds.rows>=12&&this.refDesc.rows>=12){ const mv=new cv.DMatchVectorVector(); this.bf.knnMatch(this.refDesc,ds,mv,2); const R=[],C=[];
       for(let i=0;i<mv.size();i++){ const pr=mv.get(i); if(pr.size()>=2){ const a=pr.get(0), b=pr.get(1); if(a.distance<.75*b.distance){ const p=this.refKp.get(a.queryIdx).pt, q=kp.get(a.trainIdx).pt; R.push(p.x,p.y); C.push(q.x,q.y); } } pr.delete(); }
       mv.delete();
-      if(R.length/2>=12){ const r=this.homog(R,C,4); if(r&&r.inl>=12&&r.inl/(R.length/2)>=.3&&this.sane(r.h,false)) out=r; } }
+      if(R.length/2>=20){ const r=this.homog(R,C,4); if(r&&r.inl>=20&&r.inl/(R.length/2)>=.35&&this.sane(r.h,false,true)) out=r; } }
     kp.delete(); ds.delete(); return out; }
   adopt(h){ this.Hp=h; this.refP=[]; this.cur=[];
     for(let i=0;i<this.seed.length;i+=2){ const q=ap(h,this.seed[i],this.seed[i+1]); if(q[0]>1&&q[1]>1&&q[0]<this.w-2&&q[1]<this.h-2){ this.refP.push(this.seed[i],this.seed[i+1]); this.cur.push(q[0],q[1]); } }
@@ -832,8 +832,9 @@ stage.addEventListener('wheel',e=>{ if(!S.disp) return; e.preventDefault(); S.sc
 const clampO=v=>Math.max(-3,Math.min(3,v)), wrap=a=>((a+540)%360)-180;
 /* ===== Chế độ chỉnh: Ảnh (khung sticker) / Mặt phẳng (4 góc phối cảnh) / Lưới ===== */
 function setEdit(m){ if(m==='mesh'&&!S.meshOn) m='img'; S.edit=m; S.drag=m==='plane'?'quad':'img'; stage.classList.remove('ed-img','ed-plane','ed-mesh'); stage.classList.add('ed-'+m);
-  document.querySelectorAll('#editBar button').forEach(b=>b.classList.toggle('on',b.dataset.ed===m)); $('edMesh').hidden=!S.meshOn; }
-document.querySelectorAll('#editBar button').forEach(b=>{ b.addEventListener('pointerdown',e=>e.stopPropagation()); b.onclick=e=>{ e.stopPropagation(); setEdit(b.dataset.ed); }; });
+  document.querySelectorAll('#editBar button').forEach(b=>b.classList.toggle('on',b.dataset.ed===m)); $('edMesh').hidden=!S.meshOn; $('edReset').hidden=m!=='plane'; }
+document.querySelectorAll('#editBar button[data-ed]').forEach(b=>{ b.addEventListener('pointerdown',e=>e.stopPropagation()); b.onclick=e=>{ e.stopPropagation(); setEdit(b.dataset.ed); }; });
+$('edReset').addEventListener('pointerdown',e=>e.stopPropagation()); $('edReset').onclick=e=>{ e.stopPropagation(); $('btnResetQuad').click(); toast('Đã đặt khung về giữa. Kéo 4 chấm vào 4 góc một hình chữ nhật thật trên tường.'); };
 const toAsp=p=>{ const r=toRegion(p); if(!r||!fin(r[0])||!fin(r[1])) return null; return [(r[0]-.5)*regionAspect(),r[1]-.5]; };
 function imgBox(){ // 4 góc ảnh (TL,TR,BR,BL), tâm, nút xoay — trong không gian vùng (rộng A × cao 1) rồi ra màn hình
   const A=regionAspect(), sz=fitSize(), hw=sz[0]*S.scale/2, hh=sz[1]*S.scale/2, a=S.rot*Math.PI/180, c=Math.cos(a), sn=Math.sin(a), cx=S.off[0]*A, cy=S.off[1];
@@ -1027,7 +1028,7 @@ $('chkMask').onchange=e=>{ S.showMask=e.target.checked; };
 $('btnBg').onclick=()=>{ if(!S.vw) return toast('Chưa có nguồn hình.'); S.bgPending=true; S.diffOn=true; syncUI(); toast('Đã chụp nền. Vùng phải đang trống lúc bấm.'); };
 
 document.querySelectorAll('input[name=mode]').forEach(r=>r.onchange=e=>{ if(S.locked) unlock(); S.mode=e.target.value; updLock(); save(); if(S.mode==='move') loadCV().catch(()=>toast('Không tải được OpenCV (cần internet).')); });
-$('btnResetQuad').onclick=()=>{ if(S.locked) unlock(); S.ref=[[.3,.3],[.7,.3],[.7,.7],[.3,.7]]; filt.forEach(f=>f.reset()); S.bgReady=false; $('bgState').textContent='Chưa có nền'; save(); };
+$('btnResetQuad').onclick=()=>{ if(S.locked) unlock(); det.list=[]; S.ref=[[.25,.25],[.75,.25],[.75,.75],[.25,.75]]; filt.forEach(f=>f.reset()); S.bgReady=false; $('bgState').textContent='Chưa có nền'; save(); };
 $('btnCenter').onclick=()=>{ S.scale=1; S.rot=0; S.off=[0,0]; syncUI(); save(); };
 $('chkSnap').onchange=e=>{ S.snap=e.target.checked; if(S.snap) loadCV().catch(()=>{}); save(); };
 $('aspMode').onchange=e=>{ S.aspMode=e.target.value; syncUI(); save(); };
@@ -1103,7 +1104,9 @@ function nelderMead(f,x0,step,iters){ const n=x0.length; let P=[x0.slice()]; for
 const isConvexQ=q=>{ let sg=0; for(let i=0;i<4;i++){ const a=q[i],b=q[(i+1)%4],c=q[(i+2)%4], cr=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]); if(Math.abs(cr)<1e-6) return false; const g=Math.sign(cr); if(!sg) sg=g; else if(g!==sg) return false; } return true; };
 async function autoFitAt(pn){
   setPill('Đang tách vật và khớp ảnh…','warn'); await new Promise(r=>setTimeout(r,30));
-  const seg=await segObject(pn,false); if(!seg) return; S.objImg=seg.c; S.objMask=seg.c.toDataURL('image/png'); buildClip();
+  const seg=await segObject(pn,false); if(!seg) return;
+  if(seg.pct<2){ toast(`Vùng tách được chỉ ${seg.pct}% khung hình — quá nhỏ để khớp. Chạm vào giữa vật, hoặc tăng “Độ rộng màu”.`); return; }
+  S.objImg=seg.c; S.objMask=seg.c.toDataURL('image/png'); buildClip();
   const pw=proc.width, ph=proc.height, M=Math.max(pw,ph);
   try{
     // mặt nạ vật (toạ độ tham chiếu, độ phân giải xử lý)
@@ -1171,7 +1174,9 @@ function findQuads(g){
   const th=new cv.Mat(); cv.adaptiveThreshold(bl,th,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,31,6); collect(th); cv.bitwise_not(th,th); collect(th); th.delete();
   ker.delete(); k5.delete(); bl.delete();
   // gộp các khung trùng nhau (nét viền dày sinh ra 2 contour trong/ngoài -> giữ cái ngoài)
-  out.sort((a,b)=>b.area-a.area); const res=[], tol=.035*Math.max(W,H);
+  const ctr=q=>{ const cx=q.reduce((s2,p)=>s2+p[0],0)/4/W-.5, cy=q.reduce((s2,p)=>s2+p[1],0)/4/H-.5; return 1-Math.min(.6,Math.hypot(cx,cy)); };
+  for(let i=out.length-1;i>=0;i--) if(out[i].area<A*.04) out.splice(i,1);   // bỏ khung nhỏ hơn 4% khung hình
+  out.forEach(o=>o.score=o.area*ctr(o.q)); out.sort((a,b)=>b.score-a.score); const res=[], tol=.035*Math.max(W,H);
   for(const c of out){ if(!res.some(r=>r.q.every((p,i)=>Math.hypot(p[0]-c.q[i][0],p[1]-c.q[i][1])<tol*2.2))) res.push(c); }
   return res.slice(0,8);
 }
@@ -1232,8 +1237,9 @@ addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')) re
 /* HUD & thông báo */
 let toastT=0, pillTrk=false; function toast(m){ setPill(m,'warn'); toastT=performance.now()+4500; }
 function setPill(m,c=''){ const p=$('pill'); p.hidden=!m; p.textContent=m; p.className='pill '+c; }
-let stepT=0;
-function hud(){ if(performance.now()-stepT>500){ stepT=performance.now(); updSteps(); } const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
+let stepT=0, tinyT=0;
+function hud(){ if(performance.now()-stepT>500){ stepT=performance.now(); updSteps();
+    if(S.disp&&S.vw&&area(S.disp)<.012&&performance.now()-tinyT>15000&&performance.now()>toastT){ tinyT=performance.now(); toast('Khung đang rất nhỏ — chọn “Mặt phẳng” rồi bấm “Đặt lại” (hoặc kéo các chấm ra).'); } } const L=[`${S.vw}×${S.vh}  ${fps.toFixed(0)} fps`];
   if(S.segOn) L.push(seg.ready?`AI người: ${seg.ms.toFixed(0)} ms`:'AI người: đang tải…');
   if(S.diffOn) L.push(S.bgReady?`So sánh nền: bật · bù sáng ×${S.gain.toFixed(2)}`:'So sánh nền: chưa chụp nền');
   let pill='';
